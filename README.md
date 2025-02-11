@@ -1,5 +1,5 @@
 # spot-FE
-종건님의 독주 무대
+초기 설정
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
