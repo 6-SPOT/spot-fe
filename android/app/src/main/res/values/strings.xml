@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">spot_project</string>
+    <string name="title_activity_main">spot_project</string>
+    <string name="package_name">com.spot.app</string>
+    <string name="custom_url_scheme">com.spot.app</string>
+</resources>
