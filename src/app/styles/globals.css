@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ✅ 스크롤이 정상적으로 작동하도록 보장 */
+html, body {
+  height: 100%;
+  min-height: 100vh;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+main {
+  overflow-y: auto !important; /* ✅ 페이지 내부에서 스크롤 가능 */
+  flex-grow: 1; /* ✅ 전체 영역을 차지하도록 설정 */
+}
