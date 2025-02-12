@@ -1,4 +1,19 @@
 import { CapacitorConfig } from "@capacitor/cli";
+import os from "os";
+
+const getLocalIPAddress = (): string => {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return "localhost"; // 기본값
+};
+
+const localIP = getLocalIPAddress();
 
 const config: CapacitorConfig = {
   appId: "com.spot.app",
@@ -7,7 +22,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
     iosScheme: "capacitor",
-    url: "http://172.16.24.186:3000", // Next.js 개발 서버 연결
+    url: `http://${localIP}:3000`, // Next.js 개발 서버 연결
     cleartext: true, // HTTP 허용 (Android에서 필요)
   },
   android: {
