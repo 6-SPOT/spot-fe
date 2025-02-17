@@ -10,6 +10,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         WebView webView = getBridge().getWebView();
-        webView.setOverScrollMode(WebView.OVER_SCROLL_ALWAYS); // 스크롤 활성화
+        bridge.getWebView().setOverScrollMode(android.view.View.OVER_SCROLL_NEVER);
+        bridge.getWebView().setVerticalScrollBarEnabled(false);
     }
 }
