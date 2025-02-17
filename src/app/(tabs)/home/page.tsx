@@ -17,7 +17,7 @@ export default function HomeScreen() {
 
       {/* 컨텐츠 리스트 */}
       <div className="w-full mt-4 space-y-4">
-        {[1, 2, 3, 4].map((id) => (
+        {[1, 2, 3, 4, 5, 6].map((id) => (
           <div
             key={id}
             onClick={() => router.push(`/detail/${id}`)}
