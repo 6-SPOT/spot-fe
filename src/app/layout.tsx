@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import "../styles/globals.css";
 import BottomNav from "@/components/BottomNav";
+import Script from "next/script";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const TMAP_API_KEY = process.env.NEXT_PUBLIC_TMAP_API_KEY;
@@ -8,6 +9,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="h-full w-full">
       <head>
+        {/* ✅ jQuery 추가 */}
+        <Script src="https://code.jquery.com/jquery-3.2.1.min.js" strategy="beforeInteractive" />
         {/* ✅ Tmap API 스크립트 추가 */}
         <script
           type="text/javascript"

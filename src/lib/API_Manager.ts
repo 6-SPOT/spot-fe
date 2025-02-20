@@ -1,9 +1,8 @@
-import axios, { AxiosResponse } from "axios";
-import { getServerTokens, refreshTokens, logout } from "./serverTokenManager";
+import axios from "axios";
+import { getServerTokens, refreshTokens } from "./serverTokenManager";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://your-api.com";
 
-// Axios 인스턴스 생성
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000, // 60초 타임아웃
@@ -11,101 +10,89 @@ const api = axios.create({
     Accept: "application/json;charset=UTF-8;",
     "Content-Type": "application/json;charset=UTF-8;",
   },
-  withCredentials: true, // 쿠키 기반 인증 사용 가능
+  withCredentials: false, // 기본적으로 CORS 정책 문제 방지
 });
 
-// 요청 인터셉터 (액세스 토큰 자동 추가)
-api.interceptors.request.use(
-  async (config) => {
-    const tokens = await getServerTokens();
-    if (tokens?.accessToken) {
-      config.headers.Authorization = `Bearer ${tokens.accessToken}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// 공통 에러 처리 함수
+const handleError = async (error: any, retryCallback: () => Promise<any>) => {
+  console.error("API 호출 오류:", error.toJSON ? error.toJSON() : error);
+  if (error.response) {
+    console.error("Response data:", error.response.data);
 
-// 응답 인터셉터 (토큰 만료 시 자동 갱신)
-api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  async (error) => {
-    console.error("API 호출 오류:", error.toJSON ? error.toJSON() : error);
-
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-
-      // 액세스 토큰 만료 시 자동 갱신
-      if (
-        error.response.status === 401 &&
-        error.response.data?.message === "액세스 토큰이 만료되었습니다."
-      ) {
-        console.log("토큰 만료 감지, 갱신 시도");
-        const newAccessToken = await refreshTokens();
-
-        if (newAccessToken) {
-          console.log("토큰 갱신 성공, 요청 재시도");
-
-          // 원래 요청을 새로운 토큰과 함께 재시도
-          const originalRequest = error.config;
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return api(originalRequest);
-        } else {
-          console.log("토큰 갱신 실패, 로그아웃 처리");
-          await logout();
-          return Promise.reject("로그아웃됨");
-        }
+    if (
+      error.response.status === 401 &&
+      error.response.data?.message === "액세스 토큰이 만료되었습니다."
+    ) {
+      console.log("토큰 만료 감지, 갱신 시도");
+      const newAccessToken = await refreshTokens();
+      if (newAccessToken) {
+        console.log("토큰 갱신 성공, 요청 재시도");
+        return retryCallback();
       }
-      return Promise.reject(error.response.data);
-    } else if (error.request) {
-      console.error("Request:", error.request);
-      throw new Error("서버와 연결할 수 없습니다.");
-    } else {
-      throw new Error(error.message);
     }
+
+    throw error.response.data;
+  } else if (error.request) {
+    console.error("Request:", error.request);
+    throw new Error("서버와 연결할 수 없습니다.");
+  } else {
+    throw new Error(error.message);
   }
-);
+};
 
-// API 요청 함수 정의
+// 공통 API 요청 함수
+const request = async (
+  method: "get" | "post" | "patch" | "delete",
+  endpoint: string,
+  paramsOrData = {},
+  headers = {},
+  options: { skipAuth?: boolean; useSerializer?: boolean } = {}
+) => {
+  const { skipAuth = false, useSerializer = false } = options;
+  const retryCallback = async () =>
+    request(method, endpoint, paramsOrData, headers, options);
+
+  try {
+    const tokens = await getServerTokens();
+    const finalHeaders = !skipAuth && tokens?.accessToken
+      ? { ...headers, Authorization: `Bearer ${tokens.accessToken}` }
+      : { ...headers };
+
+    console.log(`${method.toUpperCase()} 요청 헤더:`, finalHeaders);
+
+    const config: any = {
+      headers: finalHeaders,
+      withCredentials: false, // CORS 문제 방지
+    };
+
+    if (useSerializer) {
+      config.paramsSerializer = (params: any) =>
+        Object.entries(params)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value as string)}`)
+          .join("&");
+    }
+
+    const response =
+      method === "get"
+        ? await api[method](endpoint, { params: paramsOrData, ...config })
+        : await api[method](endpoint, paramsOrData, config);
+
+    return response.data;
+  } catch (error) {
+    return handleError(error, retryCallback);
+  }
+};
+
+// API Manager 객체 내보내기
 export const API_Manager = {
-  get: async <T>(endpoint: string, params = {}, headers = {}): Promise<T> => {
-    try {
-      const response = await api.get<T>(endpoint, { params, headers });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  post: async <T>(endpoint: string, data = {}, headers = {}): Promise<T> => {
-    try {
-      const response = await api.post<T>(endpoint, data, { headers });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  patch: async <T>(endpoint: string, data = {}, headers = {}): Promise<T> => {
-    try {
-      const response = await api.patch<T>(endpoint, data, { headers });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
-
-  delete: async <T>(endpoint: string, data = {}, headers = {}): Promise<T> => {
-    try {
-      const response = await api.delete<T>(endpoint, {
-        headers,
-        data, // DELETE 요청에서 body 전달
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
+  get: (endpoint: string, params = {}, headers = {}, options = {}) =>
+    request("get", endpoint, params, headers, options),
+  post: (endpoint: string, data = {}, headers = {}, options = {}) =>
+    request("post", endpoint, data, headers, options),
+  patch: (endpoint: string, data = {}, headers = {}, options = {}) =>
+    request("patch", endpoint, data, headers, options),
+  delete: (endpoint: string, data = {}, headers = {}, options = {}) =>
+    request("delete", endpoint, data, headers, options),
 };
 
 export default API_Manager;

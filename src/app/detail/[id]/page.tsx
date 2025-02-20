@@ -6,7 +6,7 @@ import { useState } from "react";
 
 export default function DetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [address, setAddress] = useState("서울특별시 강남구 테헤란로 427"); // 실제 주소로 변경 가능
+  const [address, setAddress] = useState("경기 성남시 분당구 판교로 242"); // 실제 주소로 변경 가능
 
   return (
     <div className="flex flex-col items-center p-4 w-full">
