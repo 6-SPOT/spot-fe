@@ -1,77 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { useState } from "react";
 
-// 더미 데이터
-const dummyData: Record<string, any> = {
-  "1": {
-    title: "이거 해주세요",
-    nickname: "사용자123",
-    rating: 4.8,
-    address: "서울특별시 강남구",
-    description: "급하게 도와주실 분을 찾고 있습니다!",
-  },
-  "2": {
-    title: "택배 찾아주세요",
-    nickname: "사용자456",
-    rating: 4.5,
-    address: "부산광역시 해운대구",
-    description: "택배를 대신 찾아다 주실 분을 구합니다!",
-  },
-  "3": {
-    title: "청소 도와주세요",
-    nickname: "사용자789",
-    rating: 4.9,
-    address: "대구광역시 중구",
-    description: "간단한 청소 도움을 요청합니다.",
-  },
-};
-
-export default function DetailScreen() {
+export default function DetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const params = useParams(); // ✅ useParams()로 params 가져오기
-  const [id, setId] = useState<string | null>(null);
-  const [detailData, setDetailData] = useState<any>(null);
-
-  useEffect(() => {
-    if (params?.id) {
-      setId(params.id as string);
-      setDetailData(dummyData[params.id as string] || null);
-    }
-  }, [params]);
-
-  if (!id) {
-    return <div className="p-4 text-center">🔄 로딩 중...</div>;
-  }
-
-  if (!detailData) {
-    return <div className="p-4 text-center">❌ 해당 글을 찾을 수 없습니다.</div>;
-  }
+  const [address, setAddress] = useState("서울특별시 강남구 테헤란로 427"); // 실제 주소로 변경 가능
 
   return (
-    <div className="flex flex-col p-4">
-      <h1 className="text-xl font-bold">{detailData.title}</h1>
-
-      <div className="w-full mt-4 p-4 bg-gray-200 rounded-lg">
-        <p>📌 닉네임: {detailData.nickname}</p>
-        <p>⭐ 평점: {detailData.rating}</p>
-        <p>📍 주소: {detailData.address}</p>
-        <p>📝 상세 내용: {detailData.description}</p>
+    <div className="flex flex-col items-center p-4 w-full">
+      {/* 작업 이미지 */}
+      <div className="w-full flex items-center justify-center overflow-hidden">
+        <Image 
+          src={require("@/assets/image/chillguy.png")} 
+          alt="작업 이미지" 
+          className="w-full h-auto object-cover" 
+        />
       </div>
 
-      <div className="mt-4 flex space-x-2">
-        <button className="flex-1 bg-gray-300 p-2 rounded-lg">담아두기</button>
-        <button className="flex-1 bg-blue-500 text-white p-2 rounded-lg">1:1 대화</button>
-        <button className="flex-1 bg-green-500 text-white p-2 rounded-lg">신청하기</button>
+      {/* 프로필 섹션 */}
+      <div className="w-full flex items-center mt-4">
+        <div className="w-12 h-12 bg-gray-300 rounded-full mr-4">
+          <Image 
+            src={require("@/assets/image/chillguy.png")} 
+            alt="프로필 이미지" 
+            width={48} 
+            height={48} 
+          />
+        </div>
+        <div>
+          <p className="font-semibold">닉네임</p>
+          <p className="text-sm text-gray-500">평점</p>
+        </div>
       </div>
 
+      {/* 주소 섹션 - 클릭하면 지도 페이지로 이동 */}
       <button
-        onClick={() => router.back()}
-        className="mt-4 p-2 bg-gray-300 rounded-lg"
+        className="mt-4 text-blue-500 underline"
+        onClick={() => router.push(`/map?address=${encodeURIComponent(address)}`)}
       >
-        뒤로 가기
+        {address}
       </button>
+
+      {/* 상세 내용 */}
+      <div className="w-full p-4 mt-4 bg-gray-200 rounded-md">
+        상세내용
+      </div>
+
+      {/* 하단 버튼 */}
+      <div className="w-full flex justify-between mt-4 space-x-2">
+        <button className="flex-1 p-2 bg-gray-300 rounded-md">담아두기</button>
+        <button className="flex-1 p-2 bg-gray-300 rounded-md">1:1 대화</button>
+        <button className="flex-1 p-2 bg-gray-300 rounded-md">신청하기</button>
+      </div>
     </div>
   );
 }
