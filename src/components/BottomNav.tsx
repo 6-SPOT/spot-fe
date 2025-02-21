@@ -29,7 +29,7 @@ export default function BottomNav() {
           }`}
         >
           <Newspaper strokeWidth={1.5} className="h-6 w-6" />
-          <span className="mt-1 text-xs">직업현황</span>
+          <span className="mt-1 text-xs">작업현황</span>
         </Link>
 
         <Link
