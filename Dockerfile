@@ -8,9 +8,6 @@ COPY . .
 # Install dependencies (if not included in the image)
 RUN npm install
 
-# Build the Next.js application
-RUN npm run build
-
 # Expose the port Next.js runs on
 EXPOSE 3000
 
