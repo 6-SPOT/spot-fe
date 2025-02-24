@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example  # 필요하면 예제 파일만 커밋 가능하도록 설정
