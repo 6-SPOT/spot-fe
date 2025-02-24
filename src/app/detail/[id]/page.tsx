@@ -70,7 +70,7 @@ export default function DetailPage({ params }: { params: { id: string } }) {
           <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg w-4/5 h-3/5 z-50">
             <h2 className="text-xl font-bold mb-4">📍 위치 확인</h2>
             <div className="w-full h-64">
-              <MapComponent address={address} />
+              <MapComponent mode="geocoding"address={address} />
             </div>
             <button className="w-full p-2 bg-red-500 text-white rounded-lg mt-4" onClick={() => setIsModalOpen(false)}>
               닫기
