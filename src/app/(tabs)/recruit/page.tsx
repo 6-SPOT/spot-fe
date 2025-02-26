@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import API_Manager from "@/lib/API_Manager";
@@ -38,7 +38,7 @@ export default function RecruitPage() {
     setIsModalOpen(false);
   };
 
-  // 🔥 해결사 선택 버튼 클릭 시 API 요청
+  // 🔥 해결사 선택 버튼 클릭 시 API 요청 후 URL 실행
   const handleSubmit = async () => {
     if (!description || !fee || !selectedCoords || !imageFile) {
       alert("모든 필드를 입력하고 이미지를 업로드하세요.");
@@ -67,14 +67,8 @@ export default function RecruitPage() {
     });
   
     const requestBlob = new Blob([jsonRequest], { type: "application/json" });
-    formData.append("request", requestBlob); // ✅ JSON을 Blob으로 변환하여 추가
+    formData.append("request", requestBlob);
     formData.append("file", imageFile);
-  
-    // 🔍 FormData 내용 확인
-    console.log("📌 최종 FormData 데이터 확인:");
-    for (const pair of formData.entries()) {
-      console.log(`🔹 Key: ${pair[0]}, Value:`, pair[1]);
-    }
   
     try {
       const response = await API_Manager.put(
@@ -85,10 +79,26 @@ export default function RecruitPage() {
           "Content-Type": "multipart/form-data",
         }
       );
-  
+
       console.log("✅ 구인 등록 성공! 응답 데이터:", response);
-      alert("구인 등록이 완료되었습니다!");
-      router.replace("/home");
+      
+      // 서버 응답에서 redirect URL 가져오기
+      const { redirectMobileUrl, redirectPCUrl } = response.data;
+      
+      if (!redirectMobileUrl || !redirectPCUrl) {
+        throw new Error("서버에서 반환된 URL이 없습니다.");
+      }
+
+      // 모바일/PC 환경 판별 후 URL 실행
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        console.log("📱 모바일 환경: ", redirectMobileUrl);
+        window.location.href = redirectMobileUrl;
+      } else {
+        console.log("💻 PC 환경: ", redirectPCUrl);
+        window.location.href = redirectPCUrl;
+      }
+
     } catch (error) {
       if (error instanceof Error) {
         console.error("❌ 구인 등록 실패:", error);
@@ -97,11 +107,11 @@ export default function RecruitPage() {
         console.error("❌ 예상치 못한 오류:", error);
         alert("예상치 못한 오류 발생");
       }
-    } finally {
+    }
+     finally {
       setLoading(false);
     }
   };
-  
 
   return (
     <div className="flex flex-col items-center p-4">
@@ -154,7 +164,7 @@ export default function RecruitPage() {
         />
       </div>
 
-      {/* 해결사 선택 버튼 → API 요청 실행 */}
+      {/* 해결사 선택 버튼 → API 요청 후 URL 실행 */}
       <button
         onClick={handleSubmit}
         disabled={loading}
