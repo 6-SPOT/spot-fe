@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import MapComponent from "@/components/MapComponent";
+import API_Manager from "@/lib/API_Manager";
 
 export default function RecruitPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function RecruitPage() {
   const [description, setDescription] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // ✅ 위치 선택 핸들러
   const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
@@ -23,10 +25,80 @@ export default function RecruitPage() {
   };
 
   // ✅ 데이터 `sessionStorage`에 저장 후 이동
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!description || !fee || !selectedCoords || !imageFile) {
       alert("모든 필드를 입력하고 이미지를 업로드하세요.");
       return;
+    }
+
+    setLoading(true);
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      setLoading(false);
+      return;
+    }
+
+    const formData = new FormData();
+
+    // ✅ request 값을 Blob으로 변환하여 Content-Type 명시적으로 추가
+    const jsonRequest = JSON.stringify({
+      title: "구인 요청",
+      content: description,
+      money: Number(fee),
+      point: 500,
+      lat: selectedCoords.lat,
+      lng: selectedCoords.lng,
+    });
+
+    const requestBlob = new Blob([jsonRequest], { type: "application/json" });
+    formData.append("request", requestBlob);
+    formData.append("file", imageFile);
+
+    try {
+      const response = await API_Manager.put(
+        "/api/job/register",
+        formData,
+        {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        }
+      );
+
+      console.log("✅ 구인 등록 성공! 응답 데이터:", response);
+
+      // 서버 응답에서 redirect URL 가져오기
+      const { redirectMobileUrl, redirectPCUrl, tid } = response.data;
+
+      if (!redirectMobileUrl || !redirectPCUrl) {
+        throw new Error("서버에서 반환된 URL이 없습니다.");
+      }
+
+      // 모바일/PC 환경 판별 후 URL 실행
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        console.log("📱 모바일 환경: ", redirectMobileUrl);
+        window.location.href = redirectMobileUrl;
+      } else {
+        console.log("💻 PC 환경: ", redirectPCUrl);
+        window.location.href = redirectPCUrl;
+      }
+      localStorage.setItem("tid", tid);
+      localStorage.setItem("jobTitle", description);
+      localStorage.setItem("totalAmount", fee);
+
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("❌ 구인 등록 실패:", error);
+        alert(`구인 등록 실패: ${error.message || "서버 오류"}`);
+      } else {
+        console.error("❌ 예상치 못한 오류:", error);
+        alert("예상치 못한 오류 발생");
+      }
+    }
+    finally {
+      setLoading(false);
     }
 
     const reader = new FileReader();
@@ -92,7 +164,7 @@ export default function RecruitPage() {
           {location}
         </button>
       </div>
-      
+
       {/* ✅ 보수 입력 */}
       <div className="w-full max-w-md mt-4">
         <label className="block font-semibold">💰 보수</label>
@@ -127,3 +199,4 @@ export default function RecruitPage() {
     </div>
   );
 }
+
