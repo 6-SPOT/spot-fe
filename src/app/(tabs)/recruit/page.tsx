@@ -44,18 +44,18 @@ export default function RecruitPage() {
       alert("모든 필드를 입력하고 이미지를 업로드하세요.");
       return;
     }
-  
+
     setLoading(true);
-  
+
     const token = localStorage.getItem("accessToken");
     if (!token) {
       alert("로그인이 필요합니다.");
       setLoading(false);
       return;
     }
-  
+
     const formData = new FormData();
-  
+
     // ✅ request 값을 Blob으로 변환하여 Content-Type 명시적으로 추가
     const jsonRequest = JSON.stringify({
       title: "구인 요청",
@@ -65,26 +65,26 @@ export default function RecruitPage() {
       lat: selectedCoords.lat,
       lng: selectedCoords.lng,
     });
-  
+
     const requestBlob = new Blob([jsonRequest], { type: "application/json" });
     formData.append("request", requestBlob);
     formData.append("file", imageFile);
-  
+
     try {
       const response = await API_Manager.put(
         "/api/job/register",
         formData,
-        { 
+        {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         }
       );
 
       console.log("✅ 구인 등록 성공! 응답 데이터:", response);
-      
+
       // 서버 응답에서 redirect URL 가져오기
-      const { redirectMobileUrl, redirectPCUrl } = response.data;
-      
+      const { redirectMobileUrl, redirectPCUrl, tid } = response.data;
+
       if (!redirectMobileUrl || !redirectPCUrl) {
         throw new Error("서버에서 반환된 URL이 없습니다.");
       }
@@ -98,6 +98,9 @@ export default function RecruitPage() {
         console.log("💻 PC 환경: ", redirectPCUrl);
         window.location.href = redirectPCUrl;
       }
+      localStorage.setItem("tid", tid);
+      localStorage.setItem("jobTitle", description);
+      localStorage.setItem("totalAmount", fee);
 
     } catch (error) {
       if (error instanceof Error) {
@@ -108,7 +111,7 @@ export default function RecruitPage() {
         alert("예상치 못한 오류 발생");
       }
     }
-     finally {
+    finally {
       setLoading(false);
     }
   };
