@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import API_Manager from "../../../lib/API_Manager"; // API_Manager 경로 확인
+import { Geolocation } from "@capacitor/geolocation";
+import { Capacitor } from "@capacitor/core";
 
 // API 응답 타입 정의
 interface JobData {
@@ -18,40 +20,86 @@ export default function HomeScreen() {
   const [search, setSearch] = useState("");
   const [tasks, setTasks] = useState<JobData[]>([]); // 데이터 상태
   const [loading, setLoading] = useState(true);
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    fetchJobs();
+    getCurrentLocation();
   }, []);
 
+  // 현재 위치 가져오기
+  const getCurrentLocation = async () => {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // Android & iOS (Capacitor 사용)
+        const coordinates = await Geolocation.getCurrentPosition();
+        setLocation({
+          lat: coordinates.coords.latitude,
+          lng: coordinates.coords.longitude,
+        });
+      } else {
+        // 웹 환경 (HTML5 Geolocation 사용)
+        if (!navigator.geolocation) {
+          console.error("❌ Geolocation을 지원하지 않는 브라우저입니다.");
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          },
+          (error) => {
+            console.error("❌ 위치 정보를 가져올 수 없습니다.", error);
+          }
+        );
+      }
+    } catch (error) {
+      console.error("❌ 위치 정보를 가져오는 중 오류 발생:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (location) {
+      fetchJobs();
+    }
+  }, [location]);
+
   const fetchJobs = async () => {
+    if (!location) {
+      console.error("❌ 위치 정보가 없습니다.");
+      return;
+    }
+
     const endpoint = "/api/job/worker/search";
     const params = {
-      lat: undefined,
-      lng: undefined,
+      lat: location.lat,
+      lng: location.lng,
       zoom: 21,
       page: 0,
       size: 10,
       sort: "string",
     };
-  
+
     const accessToken = localStorage.getItem("accessToken");
-  
+
     if (!accessToken) {
       console.error("❌ AccessToken이 없습니다.");
       return;
     }
-  
+
     console.log("📌 [API 요청 시작]:", endpoint);
     console.log("📌 [params]:", JSON.stringify(params));
-  
+
     try {
       const response = await API_Manager.get(endpoint, params, {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       });
-  
+
       console.log("✅ [API 응답 데이터]:", response);
-  
+
       if (response?.data?.content) {
         setTasks(response.data.content);
       } else {
@@ -64,35 +112,14 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
-  
 
   // 더미 데이터 함수
   const getDummyData = () => {
     return [
-      {
-        id: 1,
-        title: "가사 도우미 요청",
-        price: 50000,
-        time: "2시간",
-      },
-      {
-        id: 2,
-        title: "청소 서비스 요청",
-        price: 60000,
-        time: "3시간",
-      },
-      {
-        id: 3,
-        title: "배달 대행 요청",
-        price: 7000,
-        time: "30분",
-      },
-      {
-        id: 4,
-        title: "전기 수리 서비스",
-        price: 100000,
-        time: "1시간 30분",
-      },
+      { id: 1, title: "가사 도우미 요청", price: 50000, time: "2시간" },
+      { id: 2, title: "청소 서비스 요청", price: 60000, time: "3시간" },
+      { id: 3, title: "배달 대행 요청", price: 7000, time: "30분" },
+      { id: 4, title: "전기 수리 서비스", price: 100000, time: "1시간 30분" },
     ];
   };
 
