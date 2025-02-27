@@ -26,43 +26,45 @@ export default function HomeScreen() {
   const fetchJobs = async () => {
     const endpoint = "/api/job/worker/search";
     const params = {
-      lat: 37.5665, // 기본값 (서울 위도)
-      lng: 126.9780, // 기본값 (서울 경도)
-      zoom: 21, // 기본 줌 레벨
-      pageable: {
-        page: 0,
-        size: 10,
-        sort: ["distance"],
-      },
+      lat: undefined,
+      lng: undefined,
+      zoom: 21,
+      page: 0,
+      size: 10,
+      sort: "string",
     };
-
+  
     const accessToken = localStorage.getItem("accessToken");
-
+  
     if (!accessToken) {
       console.error("❌ AccessToken이 없습니다.");
       return;
     }
-
+  
+    console.log("📌 [API 요청 시작]:", endpoint);
+    console.log("📌 [params]:", JSON.stringify(params));
+  
     try {
       const response = await API_Manager.get(endpoint, params, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       });
-
+  
+      console.log("✅ [API 응답 데이터]:", response);
+  
       if (response?.data?.content) {
         setTasks(response.data.content);
       } else {
-        setTasks(getDummyData()); // 실패하면 더미 데이터 적용
+        setTasks(getDummyData());
       }
     } catch (error) {
       console.error(`API 요청 오류: ${error}`);
-      setTasks(getDummyData()); // 오류 발생 시 더미 데이터 적용
+      setTasks(getDummyData());
     } finally {
       setLoading(false);
     }
   };
+  
 
   // 더미 데이터 함수
   const getDummyData = () => {
