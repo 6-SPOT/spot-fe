@@ -52,5 +52,11 @@
         <key>NSAllowsArbitraryLoads</key>
         <true/>
     </dict>
+
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>사용자의 위치 정보를 가져오기 위해 필요합니다.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>백그라운드에서도 위치 정보를 사용할 수 있습니다.</string>
+
 </dict>
 </plist>

@@ -8,21 +8,22 @@ export default function LoginPage() {
   const [id, setId] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const API_Request = process.env.NEXT_PUBLIC_API_URL;
 
   const handleLogin = async () => {
     if (!id) {
       alert("ID를 입력하세요.");
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       // 🔥 API_Manager를 사용하여 로그인 요청
       const response = await API_Manager.get("/api/member/developer-get-token", { id });
-  
+
       console.log("📢 로그인 성공! 응답 데이터:", response);
-  
+
       // ✅ 올바르게 accessToken 값만 저장
       if (response && response.data && response.data.accessToken) {
         localStorage.setItem("accessToken", response.data.accessToken); // ✅ 토큰만 저장
@@ -38,7 +39,10 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-  
+
+  const handleKakaoLogin = () => {
+    window.location.href = API_Request + "api/member/login/kakao";
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
@@ -56,6 +60,14 @@ export default function LoginPage() {
         className="bg-blue-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
       >
         {loading ? "로그인 중..." : "로그인"}
+      </button>
+
+      <button
+        onClick={handleKakaoLogin}
+        disabled={loading}
+        className="bg-yellow-500 text-white px-4 py-2 rounded disabled:bg-gray-400"
+      >
+        {loading ? "로그인 중..." : "카카오로그인"}
       </button>
     </div>
   );
