@@ -24,10 +24,19 @@ export default function HomeScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: 37.5665, lng: 126.978 }); // 기본값: 서울
   const [zoomLevel, setZoomLevel] = useState<number>(17); // 기본 줌 레벨
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [zoom, setZoom] = useState<string>("의뢰 위치 선택");
 
   useEffect(() => {
     getCurrentLocation();
   }, []);
+
+  // ✅ 위치 선택 핸들러
+  const handleConfirmLocation = (coords: { lat: number; lng: number }, zoom: string) => {
+    setZoom(zoom);
+    setSelectedCoords(coords);
+    setIsModalOpen(false);
+  };
 
   // 현재 위치 가져오기
   const getCurrentLocation = async () => {
@@ -144,12 +153,8 @@ export default function HomeScreen() {
             <h2 className="text-xl font-bold mb-4">📍 위치 선택</h2>
             <div className="w-full h-64 relative">
               <MapComponent
-                mode="reverse-geocoding"
-                onConfirm={(coords, zoom) => {
-                  setLocation(coords);
-                  setZoomLevel(zoom);
-                  setIsModalOpen(false);
-                }}
+                mode="select-location"
+                onConfirm={handleConfirmLocation}
               />
             </div>
             <button className="w-full p-2 bg-red-500 text-white rounded-lg mt-4" onClick={() => setIsModalOpen(false)}>

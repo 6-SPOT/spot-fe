@@ -9,16 +9,19 @@ declare global {
   }
 }
 
+type OnConfirmType = 
+  | ((coords: { lat: number; lng: number }, address: string) => void) // reverse-geocoding
+  | ((coords: { lat: number; lng: number }, zoom: number) => void); // select-location
+
 interface MapComponentProps {
-  mode: "geocoding" | "reverse-geocoding" | "select-location"; // ✅ 새로운 모드 추가
+  mode: "geocoding" | "reverse-geocoding" | "select-location"; // ✅ 모드 추가
   address?: string;
-  onConfirm?: (coords: { lat: number; lng: number }, zoom: number) => void; // ✅ 모드에 따라 다르게 동작
+  onConfirm?: OnConfirmType; // ✅ 모드에 따른 올바른 타입 설정
 }
 
 export default function MapComponent({ mode, address, onConfirm }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
   const [centerCoords, setCenterCoords] = useState({ lat: 37.402399, lng: 127.101112 });
   const [currentZoom, setCurrentZoom] = useState<number>(17);
   const [currentAddress, setCurrentAddress] = useState("주소 검색 중...");
@@ -26,8 +29,6 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
 
   useEffect(() => {
     if (!mapRef.current) return;
-
-    console.log("🟢 지도 생성 요청");
 
     if (mapInstanceRef.current) {
       console.log("⚠️ 기존 지도 인스턴스가 존재하여 새로 생성하지 않음");
@@ -50,14 +51,14 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
     window.Tmapv2.event.addListener(newMapInstance, "dragend", () => {
       const newCenter = newMapInstance.getCenter();
       setCenterCoords({ lat: newCenter.lat(), lng: newCenter.lng() });
-      console.log("🔄 지도 이동, 새로운 좌표:", newCenter.lat(), newCenter.lng());
     });
 
-    // ✅ 줌 변경 이벤트
-    window.Tmapv2.event.addListener(newMapInstance, "zoom_changed", () => {
-      setCurrentZoom(newMapInstance.getZoom());
-      console.log("🔍 줌 변경:", newMapInstance.getZoom());
-    });
+    // ✅ 줌 변경 이벤트 (select-location 모드에서만 필요)
+    if (mode === "select-location") {
+      window.Tmapv2.event.addListener(newMapInstance, "zoom_changed", () => {
+        setCurrentZoom(newMapInstance.getZoom());
+      });
+    }
 
     console.log("✅ 지도 로드 완료");
   }, [mode]);
@@ -71,18 +72,24 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
 
     const newCenter = mapInstanceRef.current.getCenter();
     const latestCoords = { lat: newCenter.lat(), lng: newCenter.lng() };
-    const latestZoom = mapInstanceRef.current.getZoom();
 
-    console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords, "줌 레벨:", latestZoom);
+    console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords);
 
     if (mode === "reverse-geocoding") {
       const address = await requestReverseGeocoding(latestCoords.lat, latestCoords.lng);
-      if (address && onConfirm) {
-        onConfirm(latestCoords, latestZoom); // ✅ 기존 기능 유지 (주소 변환 후 전달)
+      if (onConfirm && typeof onConfirm === "function") {
+        (onConfirm as (coords: { lat: number; lng: number }, address: string) => void)(
+          latestCoords, 
+          address
+        ); // ✅ address 반환
       }
     } else if (mode === "select-location") {
-      if (onConfirm) {
-        onConfirm(latestCoords, latestZoom); // ✅ 선택된 좌표와 줌 레벨만 반환
+      const latestZoom = mapInstanceRef.current.getZoom();
+      if (onConfirm && typeof onConfirm === "function") {
+        (onConfirm as (coords: { lat: number; lng: number }, zoom: number) => void)(
+          latestCoords, 
+          latestZoom
+        ); // ✅ zoom 반환
       }
     }
   };
@@ -92,8 +99,6 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
       console.error("🚨 TMAP_API_KEY가 없습니다.");
       return "주소를 가져올 수 없습니다.";
     }
-
-    console.log("🔄 Reverse Geocoding 요청 시작:", lat, lng);
 
     try {
       const response = await API_Manager.get(
@@ -110,8 +115,6 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
         {},
       );
 
-      console.log("✅ Reverse Geocoding 완료:", response);
-
       const roadAddress = response.addressInfo.roadAddress || response.addressInfo.fullAddress;
       setCurrentAddress(roadAddress);
       return roadAddress;
@@ -127,9 +130,7 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
       <div ref={mapRef} className="w-full h-full" />
 
       {/* 중앙 마커 */}
-      <div
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl pointer-events-none"
-      >
+      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl pointer-events-none">
         📍
       </div>
 
