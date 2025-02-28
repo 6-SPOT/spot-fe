@@ -22,26 +22,28 @@ export default function ChatRoomPage() {
   const [stompClient, setStompClient] = useState<any>(null);
 
   useEffect(() => {
+    console.log("🔥 useEffect 실행됨 - WebSocket 연결 및 채팅 내역 가져오기");
+
     connectWebsocket();
     fetchChatHistory();
-  }, []);
 
-  useEffect(() => {
-    // 언마운트 될때
+    const handleUnload = async () => {
+      await disconnectWebSocket();
+    };
+  
+    // 페이지를 떠날 때 실행
+    window.addEventListener('beforeunload', handleUnload);
+  
     return () => {
-      const disconnect = async () => {
-        // await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/chat/room/${chatId}/read`);
-        if (stompClient && stompClient.connected) {
-          stompClient.unsubscribe(`/api/topic/${chatId}`);
-          stompClient.disconnect();
-        }
-      };
-      disconnect();
+      window.removeEventListener('beforeunload', handleUnload);
+      disconnectWebSocket();
     };
   }, []);
 
+
   const connectWebsocket = () => {
-    const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzQwNTUyMDg5LCJleHAiOjE3NDA1NjIwODl9.vScyRVf6B-f0uI0dfr7thW-YlAA6R49gtcKqqNlx-E2Oaj0QSImYJJSjsLZ4lAwi" // 추가적인 헤더
+    const token = localStorage.getItem('accessToken');
+    console.log("🟢 WebSocket 연결 시도");
 
 
     // 이미 연결 되어있으면 연결 안함
@@ -70,8 +72,7 @@ export default function ChatRoomPage() {
   };
 
   const fetchChatHistory = async () => {
-    const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzQwNTUyMDg5LCJleHAiOjE3NDA1NjIwODl9.vScyRVf6B-f0uI0dfr7thW-YlAA6R49gtcKqqNlx-E2Oaj0QSImYJJSjsLZ4lAwi" // 추가적인 헤더
-
+    const token = localStorage.getItem('accessToken');
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/history/${chatId}`,
         {
@@ -95,7 +96,7 @@ export default function ChatRoomPage() {
     setInput("");
   };
 
-  // // 나가기 버튼 눌렀을 때
+  // 나가기 버튼 눌렀을 때
   // const disconnectWebSocket = async () => {
   //   await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/chat/room/${chatId}/read`);
   //   if (stompClient && stompClient.connected) {
@@ -103,6 +104,31 @@ export default function ChatRoomPage() {
   //     stompClient.disconnect();
   //   }
   // };
+
+  const disconnectWebSocket = async () => {
+    console.log("Disconnecting WebSocket...");
+    try {
+      // const token = localStorage.getItem('accessToken');
+      // await axios.post(
+      //   `${process.env.NEXT_PUBLIC_API_URL}/chat/room/${chatId}/read`,
+      //   {},
+      //   {
+      //     headers: {
+      //       'Authorization': `Bearer ${token}`,
+      //       'Content-Type': 'application/json',
+      //     }
+      //   }
+      // );
+  
+      if (stompClient && stompClient.connected) {
+        stompClient.unsubscribe(`/api/topic/${chatId}`);
+        stompClient.disconnect();
+        console.log("WebSocket disconnected successfully");
+      }
+    } catch (error) {
+      console.error("Error disconnecting WebSocket:", error);
+    }
+  };
 
   return (
     <div className="flex flex-col p-4 h-screen">

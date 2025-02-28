@@ -24,7 +24,7 @@ export default function ChatListPage() {
     };
 
     const fetchChatRooms = async () => {
-      const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzM4NCJ9.eyJzdWIiOiIxIiwiaWF0IjoxNzQwNTUyMDg5LCJleHAiOjE3NDA1NjIwODl9.vScyRVf6B-f0uI0dfr7thW-YlAA6R49gtcKqqNlx-E2Oaj0QSImYJJSjsLZ4lAwi" // 추가적인 헤더
+      const token = localStorage.getItem('accessToken');
 
       try {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/my/rooms`,
