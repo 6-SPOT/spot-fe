@@ -27,7 +27,6 @@ export default function PaySuccessRedirectPage() {
                         throw new Error("필요한 결제 정보가 부족합니다.");
                     }
 
-                    // ✅ API 요청 데이터
                     const requestData = {
                         pgToken,
                         jobTitle,
@@ -35,7 +34,6 @@ export default function PaySuccessRedirectPage() {
                         tid
                     };
 
-                    // ✅ 서버에 결제 승인 요청
                     const response = await API_Manager.post("/api/pay/deposit", requestData, {
                         Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
@@ -43,8 +41,7 @@ export default function PaySuccessRedirectPage() {
 
                     console.log("✅ 결제 승인 성공! 응답 데이터:", response);
 
-                    // ✅ 결제 완료 후 /home으로 이동
-                    router.push('/home');
+                    router.push('/payment/end');
                 } catch (error) {
                     console.error("❌ 결제 승인 실패:", error);
                     alert(`결제 승인 실패: ${error || "서버 오류"}`);
