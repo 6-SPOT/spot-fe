@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import API_Manager from "../../../lib/API_Manager"; // API_Manager 경로 확인
+import API_Manager from "../../../lib/API_Manager";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
-import MapComponent from "@/components/MapComponent"; // ✅ 지도 모달 추가
+import MapComponent from "@/components/MapComponent";
 
 // API 응답 타입 정의
 interface JobData {
@@ -18,110 +18,105 @@ interface JobData {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [tasks, setTasks] = useState<JobData[]>([]); // 데이터 상태
+  const [tasks, setTasks] = useState<JobData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [location, setLocation] = useState<{ lat: number; lng: number }>({ lat: 37.5665, lng: 126.978 }); // 기본값: 서울
-  const [zoomLevel, setZoomLevel] = useState<number>(17); // 기본 줌 레벨
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [address, setAddress] = useState("위치 확인 중...");
+  const [zoomLevel, setZoomLevel] = useState(21);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCoords, setSelectedCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [zoom, setZoom] = useState<string>("의뢰 위치 선택");
 
   useEffect(() => {
     getCurrentLocation();
   }, []);
 
-  // ✅ 위치 선택 핸들러
-  const handleConfirmLocation = (coords: { lat: number; lng: number }, zoom: string) => {
-    setZoom(zoom);
-    setSelectedCoords(coords);
-    setIsModalOpen(false);
-  };
-
-  // 현재 위치 가져오기
+  // ✅ 현재 위치 가져오기 (GPS)
   const getCurrentLocation = async () => {
     try {
       if (Capacitor.isNativePlatform()) {
         const coordinates = await Geolocation.getCurrentPosition();
-        setLocation({ lat: coordinates.coords.latitude, lng: coordinates.coords.longitude });
+        const userCoords = { lat: coordinates.coords.latitude, lng: coordinates.coords.longitude };
+        setLocation(userCoords);
+        fetchAddress(userCoords.lat, userCoords.lng);
+        fetchJobs(userCoords, zoomLevel);
       } else {
-        if (!navigator.geolocation) {
-          console.error("❌ Geolocation을 지원하지 않는 브라우저입니다.");
-          return;
-        }
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+            const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setLocation(userCoords);
+            fetchAddress(userCoords.lat, userCoords.lng);
+            fetchJobs(userCoords, zoomLevel);
           },
-          (error) => {
-            console.error("❌ 위치 정보를 가져올 수 없습니다.", error);
-          }
+          (error) => console.error("❌ 위치 정보를 가져올 수 없습니다.", error)
         );
       }
     } catch (error) {
-      console.error("❌ 위치 정보를 가져오는 중 오류 발생:", error);
+      console.error("❌ 위치 정보 오류:", error);
     }
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, [location, zoomLevel]);
-
-  const fetchJobs = async () => {
-    if (!location) {
-      console.error("❌ 위치 정보가 없습니다.");
-      return;
+  // ✅ 리버스 지오코딩 (좌표 → 주소 변환)
+  const fetchAddress = async (lat: number, lng: number) => {
+    try {
+      const response = await API_Manager.get(
+        "https://apis.openapi.sk.com/tmap/geo/reversegeocoding",
+        {
+          version: "1",
+          format: "json",
+          appKey: process.env.NEXT_PUBLIC_TMAP_API_KEY,
+          coordType: "WGS84GEO",
+          addressType: "A02",
+          lat,
+          lon: lng,
+        },
+        {}
+      );
+      setAddress(response.addressInfo.roadAddress || response.addressInfo.fullAddress);
+    } catch (error) {
+      console.error("❌ 주소 가져오기 실패:", error);
+      setAddress("주소를 가져올 수 없습니다.");
     }
+  };
 
-    const endpoint = "/api/job/worker/search";
+  // ✅ 작업 목록 가져오기 (API 호출)
+  const fetchJobs = async (coords: { lat: number; lng: number }, zoom: number) => {
     const params = {
-      lat: location.lat,
-      lng: location.lng,
-      zoom: zoomLevel,
+      lat: coords.lat,
+      lng: coords.lng,
+      zoom,
       page: 0,
       size: 10,
       sort: "string",
     };
-
-    const accessToken = localStorage.getItem("accessToken");
-
+  
+    const accessToken = localStorage.getItem("accessToken"); // ✅ 토큰 가져오기
+  
     if (!accessToken) {
-      console.error("❌ AccessToken이 없습니다.");
+      console.error("❌ AccessToken이 없습니다. 로그인 필요.");
       return;
     }
-
-    console.log("📌 [API 요청 시작]:", endpoint);
-    console.log("📌 [params]:", JSON.stringify(params));
-
+  
     try {
-      const response = await API_Manager.get(endpoint, params, {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+      const response = await API_Manager.get("/api/job/worker/search", params, {
+        Authorization: `Bearer ${accessToken}`, // ✅ 인증 추가
       });
-
-      console.log("✅ [API 응답 데이터]:", response);
-
-      if (response?.data?.content) {
-        setTasks(response.data.content);
-      } else {
-        setTasks(getDummyData());
-      }
+  
+      setTasks(response?.data?.content || []);
     } catch (error) {
-      console.error(`API 요청 오류: ${error}`);
-      setTasks(getDummyData());
+      console.error("❌ 작업 목록 가져오기 실패:", error);
+      setTasks([]);
     } finally {
       setLoading(false);
     }
   };
+  
 
-  // 더미 데이터 함수
-  const getDummyData = () => {
-    return [
-      { id: 1, title: "가사 도우미 요청", price: 50000, time: "2시간" },
-      { id: 2, title: "청소 서비스 요청", price: 60000, time: "3시간" },
-      { id: 3, title: "배달 대행 요청", price: 7000, time: "30분" },
-      { id: 4, title: "전기 수리 서비스", price: 100000, time: "1시간 30분" },
-    ];
+  // ✅ 지도에서 위치 선택 후 호출
+  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
+    setLocation(coords);
+    setZoomLevel(21);
+    setIsModalOpen(false);
+    setAddress(address); // ✅ 새 위치의 주소 업데이트
+    fetchJobs(coords, 21);
   };
 
   return (
@@ -129,64 +124,64 @@ export default function HomeScreen() {
       {/* 상단 네비게이션 */}
       <div className="w-full flex justify-between items-center py-2">
         <h1 className="text-2xl font-bold cursor-pointer" onClick={() => setIsModalOpen(true)}>
-          지역 선택
+          {address}
         </h1>
         <button onClick={() => router.push("/notification")} className="p-2">🔔</button>
       </div>
 
-      {/* 검색창 */}
-      <div className="w-full flex items-center border-b pb-2">
-        <input
-          type="text"
-          placeholder="검색어를 입력하세요"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-2 py-1 border rounded-md"
-        />
-        <button className="p-2">🔍</button>
-      </div>
-
-      {/* 지도 모달 */}
+      {/* ✅ 지도 모달 */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-4 rounded-lg w-4/5 h-3/5 relative">
-            <h2 className="text-xl font-bold mb-4">📍 위치 선택</h2>
-            <div className="w-full h-64 relative">
-              <MapComponent
-                mode="select-location"
-                onConfirm={handleConfirmLocation}
-              />
-            </div>
-            <button className="w-full p-2 bg-red-500 text-white rounded-lg mt-4" onClick={() => setIsModalOpen(false)}>
-              닫기
-            </button>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div className="bg-white rounded-lg w-4/5 h-3/5 flex flex-col">
+          <h2 className="text-xl font-bold mb-4 text-center p-2">📍 위치 선택</h2>
+          <div className="flex-1 relative">
+            <MapComponent mode="reverse-geocoding" onConfirm={handleConfirmLocation} />
+          </div>
+          <button className="w-full p-3 bg-red-500 text-white rounded-b-lg mt-2" onClick={() => setIsModalOpen(false)}>
+            닫기
+          </button>
+        </div>
+      </div>
+      
+      )}
+
+      {/* 작업 목록 */}
+      {/* ✅ 작업 목록 */}
+{loading ? (
+  <p>불러오는 중...</p>
+) : (
+  tasks.length > 0 ? (
+    <div className="w-full mt-4">
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          className="flex justify-between items-center p-4 border-b cursor-pointer"
+          onClick={() => router.push(`/detail/${task.id}`)}
+        >
+          {/* 왼쪽: 작업 정보 */}
+          <div className="flex-1">
+            <p className="font-semibold">{task.title}</p>
+            <p className="text-sm text-gray-500">{task.price ? task.price.toLocaleString() : "가격 미정"}</p>
+            <p className="text-sm text-gray-500">{task.time ? task.time : "시간 정보 없음"}</p>
+          </div>
+
+          {/* 오른쪽: 작업 이미지 */}
+          <div className="w-24 h-24 bg-gray-300 flex items-center justify-center">
+            <Image 
+              src={require("@/assets/image/chillguy.png")} 
+              alt="작업 이미지" 
+              width={96} 
+              height={96} 
+            />
           </div>
         </div>
-      )}
+      ))}
+    </div>
+  ) : (
+    <p className="text-gray-500 text-center mt-4">주변에 등록된 작업이 없습니다.</p>
+  )
+)}
 
-      {/* 로딩 표시 */}
-      {loading ? (
-        <div className="mt-4">불러오는 중...</div>
-      ) : (
-        <div className="w-full mt-4">
-          {tasks.length > 0 ? (
-            tasks.map((task) => (
-              <div key={task.id} className="flex justify-between items-center p-4 border-b cursor-pointer">
-                <div className="flex-1">
-                  <p className="font-semibold">{task.title}</p>
-                  <p className="text-sm text-gray-500">{task.price}원</p>
-                  <p className="text-sm text-gray-500">{task.time}</p>
-                </div>
-                <div className="w-24 h-24 bg-gray-300 flex items-center justify-center">
-                  <Image src={require("@/assets/image/chillguy.png")} alt="작업 이미지" width={96} height={96} />
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-gray-500 text-center mt-4">주변에 등록된 작업이 없습니다.</div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,24 +1,121 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
-import MapComponent from "@/components/MapComponent"; // 공통 지도 컴포넌트 가져오기
+import API_Manager from "../../../lib/API_Manager";
+import { JobDetailData } from "@/types"; // API 응답 타입 정의
+import MapComponent from "@/components/MapComponent"; // 지도 컴포넌트
 
-export default function DetailPage({ params }: { params: { id: string } }) {
+export default function DetailPage() {
   const router = useRouter();
-  const [address, setAddress] = useState("경기 성남시 분당구 판교로 242");
-  const [isModalOpen, setIsModalOpen] = useState(false); // 모달 상태
+  const params = useParams(); // ✅ 바로 사용
+  const [jobId, setJobId] = useState<string | null>(null); // ✅ 상태로 관리
+  const [jobDetail, setJobDetail] = useState<JobDetailData | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState("주소를 불러오는 중...");
+
+  useEffect(() => {
+    if (params?.id) {
+      setJobId(params.id as string); // ✅ 안전한 타입 변환
+    }
+  }, [params]);
+
+  useEffect(() => {
+    if (jobId) {
+      fetchJobDetail();
+    }
+  }, [jobId]);
+
+  // ✅ API 호출하여 상세 데이터 가져오기
+  const fetchJobDetail = async () => {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (!accessToken) {
+      console.error("❌ AccessToken이 없습니다. 로그인 필요.");
+      return;
+    }
+
+    try {
+      const response = await API_Manager.get(
+        `/api/job/worker/get?id=${jobId}`,
+        {},
+        {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        }
+      );
+      setJobDetail(response.data);
+
+      // ✅ 받아온 lat, lng으로 주소 변환 요청
+      if (response.data.lat && response.data.lng) {
+        fetchAddress(response.data.lat, response.data.lng);
+      }
+    } catch (error) {
+      console.error("❌ 상세 정보 가져오기 실패:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ 좌표를 주소로 변환하는 함수
+  const fetchAddress = async (lat: number, lng: number) => {
+    const TMAP_API_KEY = process.env.NEXT_PUBLIC_TMAP_API_KEY;
+
+    if (!TMAP_API_KEY) {
+      console.error("🚨 TMAP_API_KEY가 없습니다.");
+      return;
+    }
+
+    try {
+      const response = await API_Manager.get(
+        "https://apis.openapi.sk.com/tmap/geo/reversegeocoding",
+        {
+          version: "1",
+          format: "json",
+          appKey: TMAP_API_KEY,
+          coordType: "WGS84GEO",
+          addressType: "A02",
+          lat,
+          lon: lng,
+        },
+        {}
+      );
+
+      const roadAddress = response.addressInfo.roadAddress || response.addressInfo.fullAddress;
+      setAddress(roadAddress);
+    } catch (error) {
+      console.error("❌ 주소 변환 실패:", error);
+      setAddress("주소를 가져올 수 없습니다.");
+    }
+  };
+
+  if (loading) {
+    return <p className="text-center mt-4">불러오는 중...</p>;
+  }
+
+  if (!jobDetail) {
+    return <p className="text-center mt-4 text-red-500">데이터를 불러올 수 없습니다.</p>;
+  }
 
   return (
     <div className="flex flex-col items-center p-4 w-full">
       {/* 작업 이미지 */}
       <div className="w-full flex items-center justify-center overflow-hidden">
-        <Image 
-          src={require("@/assets/image/chillguy.png")} 
-          alt="작업 이미지" 
-          className="w-full h-auto object-cover" 
-        />
+        {jobDetail.picture ? (
+          <Image 
+            src={jobDetail.picture} 
+            alt="작업 이미지" 
+            className="w-full h-auto object-cover" 
+            width={600} 
+            height={400}
+          />
+        ) : (
+          <div className="w-full h-40 bg-gray-300 flex items-center justify-center text-gray-500">
+            이미지 없음
+          </div>
+        )}
       </div>
 
       {/* 프로필 섹션 */}
@@ -32,8 +129,8 @@ export default function DetailPage({ params }: { params: { id: string } }) {
           />
         </div>
         <div>
-          <p className="font-semibold">닉네임</p>
-          <p className="text-sm text-gray-500">평점</p>
+          <p className="font-semibold">{jobDetail.title}</p>
+          <p className="text-sm text-gray-500">{jobDetail.money.toLocaleString()}원</p>
         </div>
       </div>
 
@@ -47,30 +144,30 @@ export default function DetailPage({ params }: { params: { id: string } }) {
 
       {/* 상세 내용 */}
       <div className="w-full p-4 mt-4 bg-gray-200 rounded-md">
-        상세내용
+        {jobDetail.content ? jobDetail.content : "설명이 없습니다."}
       </div>
 
-      {/* ✅ 하단 버튼들 (모달이 떠도 유지됨) */}
+      {/* ✅ 하단 버튼들 */}
       <div className="w-full flex justify-between mt-4 space-x-2">
         <button className="flex-1 p-2 bg-gray-300 rounded-md">담아두기</button>
         <button className="flex-1 p-2 bg-gray-300 rounded-md">1:1 대화</button>
         <button className="flex-1 p-2 bg-gray-300 rounded-md">신청하기</button>
       </div>
 
-      {/* ✅ 지도 모달 (absolute로 설정하여 하단 버튼 유지) */}
+      {/* ✅ 지도 모달 */}
       {isModalOpen && (
         <>
-          {/* 모달 배경 (클릭 시 닫기) */}
+          {/* 모달 배경 */}
           <div
             className="fixed inset-0 bg-black bg-opacity-50"
             onClick={() => setIsModalOpen(false)}
           />
 
-          {/* 모달 컨텐츠 (absolute로 설정하여 페이지 레이아웃 유지) */}
+          {/* 모달 컨텐츠 */}
           <div className="absolute top-1/4 left-1/2 transform -translate-x-1/2 bg-white p-4 rounded-lg w-4/5 h-3/5 z-50">
             <h2 className="text-xl font-bold mb-4">📍 위치 확인</h2>
             <div className="w-full h-64">
-              <MapComponent mode="geocoding"address={address} />
+              <MapComponent mode="geocoding" address={address} />
             </div>
             <button className="w-full p-2 bg-red-500 text-white rounded-lg mt-4" onClick={() => setIsModalOpen(false)}>
               닫기
