@@ -18,7 +18,7 @@ export default function RecruitPage() {
   const [loading, setLoading] = useState(false);
 
   // ✅ 위치 선택 핸들러
-  const handleConfirmLocation = (coords: { lat: number; lng: number }, address: string) => {
+  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
     setLocation(address);
     setSelectedCoords(coords);
     setIsModalOpen(false);
