@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import API_Manager from "@/lib/API_Manager";
 
 export default function PaySuccessRedirectPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         console.log("PaySuccessRedirectPage Loaded!");
@@ -45,8 +44,6 @@ export default function PaySuccessRedirectPage() {
                 } catch (error) {
                     console.error("❌ 결제 승인 실패:", error);
                     alert(`결제 승인 실패: ${error || "서버 오류"}`);
-                } finally {
-                    setLoading(false);
                 }
             }
         };
