@@ -91,6 +91,40 @@ export default function DetailPage() {
     }
   };
 
+  // ✅ 신청하기 API 호출
+  const handleApply = async () => {
+    if (!jobId) {
+      alert("❌ 작업 ID가 없습니다.");
+      return;
+    }
+
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const response = await API_Manager.post(
+        "/api/job/worker/request",
+        { jobId: jobId },
+        {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        }
+      );
+
+      if (response.status === 200) {
+        alert("✅ 신청이 완료되었습니다!");
+      } else {
+        alert("⚠️ 신청에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("❌ 신청 실패:", error);
+      alert("🚨 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+  };
+
   if (loading) {
     return <p className="text-center mt-4">불러오는 중...</p>;
   }
@@ -151,7 +185,12 @@ export default function DetailPage() {
       <div className="w-full flex justify-between mt-4 space-x-2">
         <button className="flex-1 p-2 bg-gray-300 rounded-md">담아두기</button>
         <button className="flex-1 p-2 bg-gray-300 rounded-md">1:1 대화</button>
-        <button className="flex-1 p-2 bg-gray-300 rounded-md">신청하기</button>
+        <button 
+          className="flex-1 p-2 bg-blue-500 text-white rounded-md"
+          onClick={handleApply}
+        >
+          신청하기
+        </button>
       </div>
 
       {/* ✅ 지도 모달 */}
