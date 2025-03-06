@@ -62,7 +62,13 @@ export default function ChatRoomPage() {
       client.subscribe(`/api/topic/${chatId}`, (message) => {
         const parsedMessage = JSON.parse(message.body);
         setMessages((prevMessages) => [...prevMessages, parsedMessage]);
-      });
+      },
+      {
+        // 헤더자리
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+      }
+    );
     },
     (error) => {
       console.error('WebSocket 연결 에러:', error);
@@ -92,7 +98,14 @@ export default function ChatRoomPage() {
   const sendMessage = () => {
     if (input.trim() === "" || !stompClient) return;
     const message = { content: input };
-    stompClient.send(`/api/publish/${chatId}`, JSON.stringify(message));
+    const token = localStorage.getItem('accessToken');
+    stompClient.send(`/api/publish/${chatId}`, 
+      JSON.stringify(message),
+      {
+        // 헤더자리
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+      });
     setInput("");
   };
 
