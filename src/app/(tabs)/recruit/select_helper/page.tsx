@@ -83,7 +83,6 @@ export default function SelectHelperPage() {
         }
       );
 
-
       console.log("content : ", data.description);
       console.log("totalAmount : ", Number(data.fee));
       console.log("jobId : ", Number(jobId));
