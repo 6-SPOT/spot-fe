@@ -61,9 +61,6 @@ export default function SelectHelperPage() {
     // ✅ 현재 실행 환경에 따라 `redirect_url`을 동적으로 설정
     const redirectUrl = `${window.location.origin}/recruit/select_helper`;
     console.log("✅ 설정된 리디렉트 URL:", redirectUrl);
-    console.log("jobId : ", jobId);
-    console.log("fee : ", Number(data.fee));
-    console.log("content : ", data.description);
 
 
     try {
@@ -76,17 +73,10 @@ export default function SelectHelperPage() {
           jobId: Number(jobId)
         },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",  // ✅ JSON 요청을 위해 필요
-          }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",  // ✅ JSON 요청을 위해 필요
         }
       );
-
-      console.log("content : ", data.description);
-      console.log("totalAmount : ", Number(data.fee));
-      console.log("jobId : ", Number(jobId));
-      console.log("✅ 서버 응답:", response);
 
       // ✅ 결제 URL로 이동
       const { redirectMobileUrl, redirectPCUrl, tid } = response.data;
