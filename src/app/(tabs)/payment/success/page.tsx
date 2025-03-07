@@ -18,17 +18,17 @@ export default function PaySuccessRedirectPage() {
             if (pgToken) {
                 try {
                     const token = localStorage.getItem("accessToken");
-                    const jobTitle = localStorage.getItem("jobTitle");
+                    const content = localStorage.getItem("jobTitle");
                     const tid = localStorage.getItem("tid");
                     const totalAmount = localStorage.getItem("totalAmount"); // 기본값 설정
 
-                    if (!token || !jobTitle || !tid) {
+                    if (!token || !content || !tid) {
                         throw new Error("필요한 결제 정보가 부족합니다.");
                     }
 
                     const requestData = {
                         pgToken,
-                        jobTitle,
+                        content,
                         totalAmount,
                         tid
                     };
