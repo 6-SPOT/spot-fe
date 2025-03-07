@@ -106,7 +106,7 @@ export default function DetailPage() {
 
     try {
       const response = await API_Manager.post(
-        "/api/job/worker/request",
+        "api/job/worker/request",
         { jobId: jobId },
         {
           Authorization: `Bearer ${accessToken}`,
@@ -144,6 +144,7 @@ export default function DetailPage() {
             className="w-full h-auto object-cover" 
             width={600} 
             height={400}
+            loading="eager"
           />
         ) : (
           <div className="w-full h-40 bg-gray-300 flex items-center justify-center text-gray-500">
@@ -160,10 +161,11 @@ export default function DetailPage() {
             alt="프로필 이미지" 
             width={48} 
             height={48} 
+            loading="eager"
           />
         </div>
         <div>
-          <p className="font-semibold">{jobDetail.title}</p>
+          <p className="font-semibold">{jobDetail.nickname}</p>
           <p className="text-sm text-gray-500">{jobDetail.money.toLocaleString()}원</p>
         </div>
       </div>
