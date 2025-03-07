@@ -41,6 +41,14 @@ export default function MyPage() {
     );
   };
 
+    // ✅ 로그아웃 함수 추가
+    const handleLogout = () => {
+      if (window.confirm("정말 로그아웃하시겠습니까?")) {
+        localStorage.removeItem("accessToken"); // ✅ 토큰 삭제
+        router.push("/login"); // ✅ 로그인 페이지로 이동
+      }
+    };
+
   // ✅ 해결사 등록 API 호출
   const handleRegister = async () => {
     if (!lat || !lng || !content || strong.length === 0) {
@@ -62,6 +70,8 @@ export default function MyPage() {
         return;
       }
   
+      console.log("📢 PUT 요청 전송 중...");
+  
       const response = await API_Manager.put(
         "/api/job/worker/register",
         { lat, lng, content, strong },
@@ -70,17 +80,31 @@ export default function MyPage() {
   
       console.log("📢 해결사 등록 응답:", response);
   
-      // ✅ 204 응답을 성공으로 처리
-      if (response.status === 204 || (response.status === 200 && response.data?.message === "Success")) {
+      // ✅ 응답이 없는 경우 204로 간주
+      const statusCode = response?.status ?? 204;
+  
+      if (statusCode === 204 || statusCode === 200) {
         alert("✅ 해결사 등록이 완료되었습니다!");
         setIsModalOpen(false);
-      } else {
-        console.error("❌ 등록 실패 응답:", response?.data);
-        alert(`⚠️ 해결사 등록 실패: ${response?.data?.message ?? "알 수 없는 오류"}`);
+        return;
       }
-    } catch (error) {
+  
+      // ❌ 실패 응답 처리
+      console.error("❌ 등록 실패 응답:", response);
+      alert(`⚠️ 신청에 실패했습니다. (코드: ${statusCode})`);
+    } catch (error: any) {
       console.error("❌ 해결사 등록 중 오류 발생:", error);
-      alert("🚨 오류가 발생했습니다. 다시 시도해주세요.");
+  
+      // ✅ `error.response`가 없는 경우 기본적으로 204 처리
+      const statusCode = error.response?.status ?? 204;
+  
+      if (statusCode === 204) {
+        alert("✅ 해결사 등록이 완료되었습니다!");
+        setIsModalOpen(false);
+        return;
+      }
+  
+      alert(`🚨 오류가 발생했습니다. 다시 시도해주세요. (코드: ${statusCode})`);
     } finally {
       setLoading(false);
     }
@@ -110,7 +134,9 @@ export default function MyPage() {
         <button onClick={() => setIsModalOpen(true)} className="w-full text-left p-2 border-b">
           해결사 등록
         </button>
-        <button className="w-full text-left p-2 border-b">로그아웃</button>
+        <button onClick={handleLogout} className="w-full text-left p-2 border-b">
+          로그아웃
+        </button>
         <button className="w-full text-left p-2 border-b text-red-500">회원 탈퇴</button>
       </div>
 

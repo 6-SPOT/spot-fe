@@ -9,5 +9,8 @@ export interface JobDetailData {
     money: number;
     dist: number;
     tid?: string | null;
+    clientId: number;
+    nickname: string;
+    clientImg: string;
   }
   
