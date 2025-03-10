@@ -13,9 +13,10 @@ interface MapComponentProps {
   mode: "geocoding" | "reverse-geocoding";
   address?: string;
   onConfirm?: (address: string, coords: { lat: number; lng: number }) => void;
+  onZoomChange?: (zoom: number) => void;
 }
 
-export default function MapComponent({ mode, address, onConfirm }: MapComponentProps) {
+export default function MapComponent({ mode, address, onConfirm, onZoomChange }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -66,6 +67,15 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
         console.log("🔄 지도 이동, 새로운 좌표:", newCenter.lat(), newCenter.lng());
       });
     }
+
+    // ✅ 줌 변경 이벤트 추가
+    window.Tmapv2.event.addListener(newMapInstance, "zoom_changed", () => {
+      const newZoomLevel = newMapInstance.getZoom();
+      console.log("🔍 줌 레벨 변경:", newZoomLevel);
+      if (onZoomChange) {
+        onZoomChange(newZoomLevel);
+      }
+    });
 
     console.log("✅ 지도 로드 완료");
   }, [mode]);
