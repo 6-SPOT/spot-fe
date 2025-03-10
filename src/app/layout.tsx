@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import "../styles/globals.css";
 import Script from "next/script";
 import ClientNav from "@/components/ClientNav"; // 클라이언트 전용 네비게이션 컴포넌트
+import ClientFCM from "@/components/ClientFCM"; // FCM 서비스 워커 등록
 
 export default function Layout({ children }: { children: ReactNode }) {
   const TMAP_API_KEY = process.env.NEXT_PUBLIC_TMAP_API_KEY;
@@ -18,6 +19,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         />
       </head>
       <body className="h-full w-full flex flex-col">
+        {/* ✅ FCM 서비스 워커 등록 */}
+        <ClientFCM />
+
         {/* 뷰 컨테이너: 스크롤 가능 영역 */}
         <main className="flex-1 w-full overflow-y-auto">
           {children}
