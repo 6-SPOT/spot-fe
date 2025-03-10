@@ -82,7 +82,7 @@ export default function HomeScreen() {
     const params = {
       lat: coords.lat,
       lng: coords.lng,
-      zoom: zoomLevel,
+      zoom,
       page: 0,
       size: 10,
       sort: "string",
@@ -109,19 +109,22 @@ export default function HomeScreen() {
     }
   };
   
-  const handleZoomChange = (zoom: number) =>{
+  // ✅ 줌 레벨이 변경될 때 상태 업데이트
+  const handleZoomChange = (zoom: number) => {
+    console.log("🔍 줌 레벨 변경됨:", zoom);
     setZoomLevel(zoom);
-    if(location){
-      fetchJobs(location, zoom);
-    }
   };
 
-  // ✅ 지도에서 위치 선택 후 호출
-  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
+  // ✅ "확인" 버튼을 눌렀을 때 최신 줌 레벨 반영
+  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }, zoom: number) => {
+    console.log("🟢 확인 버튼 클릭됨. 최신 줌 레벨:", zoomLevel);
+
+    setZoomLevel(zoom);
     setLocation(coords);
     setIsModalOpen(false);
-    setAddress(address); // ✅ 새 위치의 주소 업데이트
-    fetchJobs(coords, zoomLevel);
+    setAddress(address);
+
+    fetchJobs(coords, zoomLevel); // ✅ 최신 줌 레벨을 반영하여 API 호출
   };
 
   return (

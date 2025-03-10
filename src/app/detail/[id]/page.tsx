@@ -15,6 +15,7 @@ export default function DetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState("주소를 불러오는 중...");
+  const [isApplied, setIsApplied] = useState(false);
 
   useEffect(() => {
     if (params?.id) {
@@ -47,6 +48,10 @@ export default function DetailPage() {
         }
       );
       setJobDetail(response.data);
+
+      if(response.data.myStatus === "ATTENDER"){
+        setIsApplied(true);
+      }
 
       // ✅ 받아온 lat, lng으로 주소 변환 요청
       if (response.data.lat && response.data.lng) {
@@ -191,8 +196,9 @@ export default function DetailPage() {
         <button 
           className="flex-1 p-2 bg-blue-500 text-white rounded-md"
           onClick={handleApply}
+          disabled={isApplied}
         >
-          신청하기
+          {isApplied ? "신청중" : "신청하기"}
         </button>
       </div>
 

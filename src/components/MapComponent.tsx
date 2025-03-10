@@ -12,7 +12,7 @@ declare global {
 interface MapComponentProps {
   mode: "geocoding" | "reverse-geocoding";
   address?: string;
-  onConfirm?: (address: string, coords: { lat: number; lng: number }) => void;
+  onConfirm?: (address: string, coords: { lat: number; lng: number }, currentZoom: number) => void;
   onZoomChange?: (zoom: number) => void;
 }
 
@@ -93,9 +93,12 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
   
     console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords);
   
+    const currentZoom = mapInstanceRef.current.getZoom();
+    console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords, "줌 레벨:", currentZoom);
+
     const address = await requestReverseGeocoding(latestCoords.lat, latestCoords.lng);
     if (address && onConfirm) {
-      onConfirm(address, latestCoords);
+      onConfirm(address, latestCoords, currentZoom);
     }
   };
   
