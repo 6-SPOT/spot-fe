@@ -68,25 +68,24 @@ export default function RecruitPage() {
 
       console.log("✅ 구인 등록 성공! 응답 데이터:", response);
 
-      // 서버 응답에서 redirect URL 가져오기
-      const { redirectMobileUrl, redirectPCUrl, tid } = response.data;
+      const { jobId } = response.data;
 
-      if (!redirectMobileUrl || !redirectPCUrl) {
-        throw new Error("서버에서 반환된 URL이 없습니다.");
-      }
+      // if (!redirectMobileUrl || !redirectPCUrl) {
+      // throw new Error("서버에서 반환된 URL이 없습니다.");
+      // }
 
       // 모바일/PC 환경 판별 후 URL 실행
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        console.log("📱 모바일 환경: ", redirectMobileUrl);
-        window.location.href = redirectMobileUrl;
-      } else {
-        console.log("💻 PC 환경: ", redirectPCUrl);
-        window.location.href = redirectPCUrl;
-      }
-      localStorage.setItem("tid", tid);
+      // const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      // if (isMobile) {
+      //   console.log("📱 모바일 환경: ", redirectMobileUrl);
+      //   window.location.href = redirectMobileUrl;
+      // } else {
+      //   console.log("💻 PC 환경: ", redirectPCUrl);
+      //   window.location.href = redirectPCUrl;
+      // }
       localStorage.setItem("jobTitle", description);
       localStorage.setItem("totalAmount", fee);
+      localStorage.setItem("jobId", jobId);
 
     } catch (error) {
       if (error instanceof Error) {

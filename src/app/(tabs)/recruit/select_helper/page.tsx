@@ -50,6 +50,7 @@ export default function SelectHelperPage() {
 
     setLoading(true);
     const token = localStorage.getItem("accessToken");
+    const jobId = localStorage.getItem("jobId");
 
     if (!token) {
       alert("로그인이 필요합니다.");
@@ -61,34 +62,26 @@ export default function SelectHelperPage() {
     const redirectUrl = `${window.location.origin}/recruit/select_helper`;
     console.log("✅ 설정된 리디렉트 URL:", redirectUrl);
 
-    // ✅ FormData 생성
-    const formData = new FormData();
-    formData.append(
-      "request",
-      new Blob([JSON.stringify({
-        title: "구인 요청",
-        content: data.description,
-        money: Number(data.fee),
-        point: 500,
-        lat: data.selectedCoords.lat,
-        lng: data.selectedCoords.lng,
-        redirect_url: redirectUrl // ✅ 동적 설정된 redirect_url 적용
-      })], { type: "application/json" })
-    );
-    formData.append("file", imageFile);
 
     try {
-      // ✅ 결제 요청 (PUT)
-      const response = await API_Manager.put("/api/job/register", formData, {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      });
-
-      console.log("✅ 서버 응답:", response);
+      // ✅ 결제 요청 (POST)
+      const response = await API_Manager.post("/api/pay/ready",
+        {
+          content: data.description,
+          amount: Number(data.fee),
+          point: 500,
+          jobId: Number(jobId)
+        },
+        {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",  // ✅ JSON 요청을 위해 필요
+        }
+      );
 
       // ✅ 결제 URL로 이동
-      const { redirectMobileUrl, redirectPCUrl } = response.data;
+      const { redirectMobileUrl, redirectPCUrl, tid } = response.data;
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      localStorage.setItem("tid", tid);
       window.location.href = isMobile ? redirectMobileUrl : redirectPCUrl;
     } catch (error) {
       console.error("❌ 결제 실패:", error);

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import API_Manager from "@/lib/API_Manager";
 
 export default function PaySuccessRedirectPage() {
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         console.log("PaySuccessRedirectPage Loaded!");
@@ -19,17 +18,17 @@ export default function PaySuccessRedirectPage() {
             if (pgToken) {
                 try {
                     const token = localStorage.getItem("accessToken");
-                    const jobTitle = localStorage.getItem("jobTitle");
+                    const content = localStorage.getItem("jobTitle");
                     const tid = localStorage.getItem("tid");
                     const totalAmount = localStorage.getItem("totalAmount"); // 기본값 설정
 
-                    if (!token || !jobTitle || !tid) {
+                    if (!token || !content || !tid) {
                         throw new Error("필요한 결제 정보가 부족합니다.");
                     }
 
                     const requestData = {
                         pgToken,
-                        jobTitle,
+                        content,
                         totalAmount,
                         tid
                     };
@@ -45,8 +44,6 @@ export default function PaySuccessRedirectPage() {
                 } catch (error) {
                     console.error("❌ 결제 승인 실패:", error);
                     alert(`결제 승인 실패: ${error || "서버 오류"}`);
-                } finally {
-                    setLoading(false);
                 }
             }
         };
