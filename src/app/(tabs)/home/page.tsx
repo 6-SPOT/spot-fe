@@ -82,7 +82,7 @@ export default function HomeScreen() {
     const params = {
       lat: coords.lat,
       lng: coords.lng,
-      zoom,
+      zoom: zoomLevel,
       page: 0,
       size: 10,
       sort: "string",
@@ -109,14 +109,19 @@ export default function HomeScreen() {
     }
   };
   
+  const handleZoomChange = (zoom: number) =>{
+    setZoomLevel(zoom);
+    if(location){
+      fetchJobs(location, zoom);
+    }
+  };
 
   // ✅ 지도에서 위치 선택 후 호출
   const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
     setLocation(coords);
-    setZoomLevel(21);
     setIsModalOpen(false);
     setAddress(address); // ✅ 새 위치의 주소 업데이트
-    fetchJobs(coords, 21);
+    fetchJobs(coords, zoomLevel);
   };
 
   return (
@@ -135,7 +140,7 @@ export default function HomeScreen() {
         <div className="bg-white rounded-lg w-4/5 h-3/5 flex flex-col">
           <h2 className="text-xl font-bold mb-4 text-center p-2">📍 위치 선택</h2>
           <div className="flex-1 relative">
-            <MapComponent mode="reverse-geocoding" onConfirm={handleConfirmLocation} />
+            <MapComponent mode="reverse-geocoding" onConfirm={handleConfirmLocation} onZoomChange={handleZoomChange}/>
           </div>
           <button className="w-full p-3 bg-red-500 text-white rounded-b-lg mt-2" onClick={() => setIsModalOpen(false)}>
             닫기
