@@ -15,6 +15,7 @@ export default function DetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState("주소를 불러오는 중...");
+  const [isApplied, setIsApplied] = useState(false);
 
   useEffect(() => {
     if (params?.id) {
@@ -47,6 +48,10 @@ export default function DetailPage() {
         }
       );
       setJobDetail(response.data);
+
+      if(response.data.myStatus === "ATTENDER"){
+        setIsApplied(true);
+      }
 
       // ✅ 받아온 lat, lng으로 주소 변환 요청
       if (response.data.lat && response.data.lng) {
@@ -114,14 +119,15 @@ export default function DetailPage() {
         }
       );
 
-      if (response.status === 200) {
-        alert("✅ 신청이 완료되었습니다!");
-      } else {
-        alert("⚠️ 신청에 실패했습니다.");
-      }
+      console.log("📢 해결사 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
+  
+      // ✅ 서버 응답을 그대로 처리
+      alert(`✅ ${response.message}`);
     } catch (error) {
-      console.error("❌ 신청 실패:", error);
-      alert("🚨 오류가 발생했습니다. 다시 시도해주세요.");
+      console.error("❌ 의뢰 신청 중 오류 발생:", error);
+      alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -190,8 +196,9 @@ export default function DetailPage() {
         <button 
           className="flex-1 p-2 bg-blue-500 text-white rounded-md"
           onClick={handleApply}
+          disabled={isApplied}
         >
-          신청하기
+          {isApplied ? "신청중" : "신청하기"}
         </button>
       </div>
 

@@ -109,14 +109,22 @@ export default function HomeScreen() {
     }
   };
   
+  // ✅ 줌 레벨이 변경될 때 상태 업데이트
+  const handleZoomChange = (zoom: number) => {
+    console.log("🔍 줌 레벨 변경됨:", zoom);
+    setZoomLevel(zoom);
+  };
 
-  // ✅ 지도에서 위치 선택 후 호출
-  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
+  // ✅ "확인" 버튼을 눌렀을 때 최신 줌 레벨 반영
+  const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }, zoom: number) => {
+    console.log("🟢 확인 버튼 클릭됨. 최신 줌 레벨:", zoomLevel);
+
+    setZoomLevel(zoom);
     setLocation(coords);
-    setZoomLevel(21);
     setIsModalOpen(false);
-    setAddress(address); // ✅ 새 위치의 주소 업데이트
-    fetchJobs(coords, 21);
+    setAddress(address);
+
+    fetchJobs(coords, zoomLevel); // ✅ 최신 줌 레벨을 반영하여 API 호출
   };
 
   return (
@@ -135,7 +143,7 @@ export default function HomeScreen() {
         <div className="bg-white rounded-lg w-4/5 h-3/5 flex flex-col">
           <h2 className="text-xl font-bold mb-4 text-center p-2">📍 위치 선택</h2>
           <div className="flex-1 relative">
-            <MapComponent mode="reverse-geocoding" onConfirm={handleConfirmLocation} />
+            <MapComponent mode="reverse-geocoding" onConfirm={handleConfirmLocation} onZoomChange={handleZoomChange}/>
           </div>
           <button className="w-full p-3 bg-red-500 text-white rounded-b-lg mt-2" onClick={() => setIsModalOpen(false)}>
             닫기

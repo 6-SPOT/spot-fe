@@ -12,10 +12,11 @@ declare global {
 interface MapComponentProps {
   mode: "geocoding" | "reverse-geocoding";
   address?: string;
-  onConfirm?: (address: string, coords: { lat: number; lng: number }) => void;
+  onConfirm?: (address: string, coords: { lat: number; lng: number }, currentZoom: number) => void;
+  onZoomChange?: (zoom: number) => void;
 }
 
-export default function MapComponent({ mode, address, onConfirm }: MapComponentProps) {
+export default function MapComponent({ mode, address, onConfirm, onZoomChange }: MapComponentProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -67,6 +68,15 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
       });
     }
 
+    // ✅ 줌 변경 이벤트 추가
+    window.Tmapv2.event.addListener(newMapInstance, "zoom_changed", () => {
+      const newZoomLevel = newMapInstance.getZoom();
+      console.log("🔍 줌 레벨 변경:", newZoomLevel);
+      if (onZoomChange) {
+        onZoomChange(newZoomLevel);
+      }
+    });
+
     console.log("✅ 지도 로드 완료");
   }, [mode]);
 
@@ -83,9 +93,12 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
   
     console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords);
   
+    const currentZoom = mapInstanceRef.current.getZoom();
+    console.log("✅ 확인 버튼 클릭됨. 최신 좌표:", latestCoords, "줌 레벨:", currentZoom);
+
     const address = await requestReverseGeocoding(latestCoords.lat, latestCoords.lng);
     if (address && onConfirm) {
-      onConfirm(address, latestCoords);
+      onConfirm(address, latestCoords, currentZoom);
     }
   };
   
