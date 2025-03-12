@@ -13,6 +13,7 @@ interface Task {
   memberId: string
   nickName: string
   phone: string
+  owner: boolean
 }
 
 // 상태값 변환 (이미지 기반 상태 매핑 적용)
@@ -42,16 +43,16 @@ const getStatusProgress = (status: string) => {
 }
 
 // 🔹 페이지 이동 경로 설정
-const getTaskRoute = (status: string, isRequest: boolean, jobId: string) => {
-  if (isRequest) {
-    return status === "ATTENDER" || status === "REQUEST"
+const getTaskRoute = (status: string, isRequest: boolean, jobId: string, owner: boolean) => {
+  const basePath = isRequest
+    ? status === "ATTENDER" || status === "REQUEST"
       ? `/tasks/request/${jobId}`
       : `/tasks/in_progress/${jobId}`
-  } else {
-    return status === "ATTENDER" || status === "REQUEST"
+    : status === "ATTENDER" || status === "REQUEST"
       ? `/detail/${jobId}`
-      : `/tasks/in_progress/${jobId}`
-  }
+      : `/tasks/in_progress/${jobId}`;
+
+  return `${basePath}?owner=${owner}`;
 }
 
 export default function TasksPage() {
@@ -144,7 +145,7 @@ export default function TasksPage() {
           tasks.map((task) => (
             <div
               key={task.jobId}
-              onClick={() => router.push(getTaskRoute(task.status, activeTab === "requests", task.jobId))}
+              onClick={() => router.push(getTaskRoute(task.status, activeTab === "requests", task.jobId, task.owner))}
               className="p-6 bg-gray-100 rounded-lg cursor-pointer"
             >
               <div className="flex items-start gap-4">
@@ -154,7 +155,6 @@ export default function TasksPage() {
                 <div className="flex-1">
                   <h2 className="text-lg font-medium mb-1">{task.title}</h2>
                   <p className="text-sm text-gray-600 mb-1">{task.content}</p>
-                  <p className="text-xs text-gray-500">담당자: {task.nickName} | {task.phone}</p>
                 </div>
               </div>
 
