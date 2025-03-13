@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import APIManager from "@/lib/API_Manager"; // API Manager 경로에 맞게 수정 필요
+import { ABILITIES } from "@/app/(tabs)/mypage/abilities";
 
 interface Applicant {
   id: number;
@@ -22,14 +23,25 @@ export default function ApplicantsPage() {
   useEffect(() => {
     const fetchApplicants = async () => {
       try {
-        const response = await APIManager.get("/api/job/search-list", {
+        const accessToken = localStorage.getItem("accessToken"); // accessToken 가져오기
+        if (!accessToken) {
+          console.error("AccessToken이 없습니다.");
+          return;
+        }
+        const params = {
           id,
           page: 0,
           size: 10,
           sort: "string",
+        };
+
+        const response = await APIManager.get("/api/job/search-list", params, {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
         });
 
-        setApplicants(response.content || []);
+        console.log("신청자 리스트 : ", response.data);
+        setApplicants(response.data.content || []);
       } catch (error) {
         console.error("신청자 목록을 불러오는 중 오류 발생:", error);
       } finally {
@@ -42,11 +54,24 @@ export default function ApplicantsPage() {
 
   const selectApplicant = async (applicantId: number) => {
     try {
-      const response = await APIManager.post("/api/job/yes-or-no", {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.error("AccessToken이 없습니다.");
+        return;
+      }
+      const params = {
         jobId: id,
         attenderId: applicantId,
         isYes: true,
-      });
+      };
+
+      const response = await APIManager.post(
+        "/api/job/yes-or-no",params,
+        {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+        }
+      );
 
       if (response) {
         alert("신청자를 선택했습니다.");
@@ -54,6 +79,12 @@ export default function ApplicantsPage() {
     } catch (error) {
       console.error("신청자 선택 오류:", error);
     }
+  };
+
+  const getAbilityLabels = (abilities: string[]) => {
+    return abilities
+      .map((ability) => ABILITIES.find((item) => item.value === ability)?.label || ability)
+      .join(", ");
   };
 
   if (loading) {
@@ -72,7 +103,7 @@ export default function ApplicantsPage() {
             <div key={applicant.id} className="p-4 bg-gray-200 rounded-lg">
               <p>📌 닉네임: {applicant.name}</p>
               <p>📝 소개: {applicant.introduction}</p>
-              <p>🔥 능력: {applicant.abilities.join(", ")}</p>
+              <p>🔥 능력: {getAbilityLabels(applicant.abilities)}</p>
               <div className="flex space-x-2 mt-2">
                 <button className="flex-1 bg-blue-500 text-white p-2 rounded-lg">
                   1:1 대화
