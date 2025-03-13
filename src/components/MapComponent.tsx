@@ -111,7 +111,6 @@ export default function MapComponent({ mode, address, onConfirm }: MapComponentP
           lon: lng,
         },
         {},
-        { skipAuth: true, useSerializer: true }
       );
   
       console.log("✅ Reverse Geocoding 완료:", response);
