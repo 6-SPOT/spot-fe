@@ -131,6 +131,43 @@ export default function DetailPage() {
     }
   };
 
+  // ✅ 채팅 API 호출
+  const createChat = async () => {
+    if (!jobId) {
+      alert("❌ 작업 ID가 없습니다.");
+      return;
+    }
+
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const response = await API_Manager.post(
+        "api/chat/room/create",
+        { jobId: jobId ,
+          otherMemberId: jobDetail?.clientId
+        },
+        {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        }
+      );
+
+      console.log("📢 채팅방 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
+  
+      // ✅ 서버 응답을 그대로 처리
+      alert(`✅ ${response.message}`);
+    } catch (error) {
+      console.error("❌ 채팅 신청 중 오류 발생:", error);
+      alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return <p className="text-center mt-4">불러오는 중...</p>;
   }
@@ -192,7 +229,11 @@ export default function DetailPage() {
       {/* ✅ 하단 버튼들 */}
       <div className="w-full flex justify-between mt-4 space-x-2">
         <button className="flex-1 p-2 bg-gray-300 rounded-md">담아두기</button>
-        <button className="flex-1 p-2 bg-gray-300 rounded-md">1:1 대화</button>
+        <button 
+          className="flex-1 p-2 bg-gray-300 rounded-md"
+          onClick={createChat}
+        >
+          1:1 대화</button>
         <button 
           className="flex-1 p-2 bg-blue-500 text-white rounded-md"
           onClick={handleApply}
