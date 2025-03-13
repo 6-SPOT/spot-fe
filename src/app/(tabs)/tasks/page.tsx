@@ -18,7 +18,7 @@ interface Task {
 
 // 상태값 변환 (이미지 기반 상태 매핑 적용)
 const getStatusLabel = (status: string) => {
-  if (status === "ATTENDER" || status === "REQUEST") return "요청중"
+  if (status === "ATTENDER" || status === "REQUEST" || status === "OWNER") return "요청중"
   if (status === "YES") return "수락"
   if (status === "START") return "진행중"
   if (status === "FINISH") return "승인대기"
@@ -28,6 +28,7 @@ const getStatusLabel = (status: string) => {
 // 상태별 진행도 지정
 const getStatusProgress = (status: string) => {
   switch (status) {
+    case "OWNER":
     case "ATTENDER":
     case "REQUEST":
       return "0%" // 요청중
@@ -45,7 +46,7 @@ const getStatusProgress = (status: string) => {
 // 🔹 페이지 이동 경로 설정
 const getTaskRoute = (status: string, isRequest: boolean, jobId: string, owner: boolean) => {
   const basePath = isRequest
-    ? status === "ATTENDER" || status === "REQUEST"
+    ? status === "ATTENDER" || status === "REQUEST" || status === "OWNER"
       ? `/tasks/request/${jobId}`
       : `/tasks/in_progress/${jobId}`
     : status === "ATTENDER" || status === "REQUEST"

@@ -12,8 +12,9 @@ import MapComponent from "@/components/MapComponent";
 interface JobData {
   id: number;
   title: string;
-  price: number;
+  money: number;
   time: string;
+  content: string;
 }
 
 export default function HomeScreen() {
@@ -22,10 +23,11 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("위치 확인 중...");
-  const [zoomLevel, setZoomLevel] = useState(21);
+  const [zoomLevel, setZoomLevel] = useState(17);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    console.log("✅ useEffect 실행됨 - getCurrentLocation 호출");
     getCurrentLocation();
   }, []);
 
@@ -35,6 +37,7 @@ export default function HomeScreen() {
       if (Capacitor.isNativePlatform()) {
         const coordinates = await Geolocation.getCurrentPosition();
         const userCoords = { lat: coordinates.coords.latitude, lng: coordinates.coords.longitude };
+        console.log("✅ 위치 가져옴: ", userCoords);  // ✅ GPS 좌표 가져왔는지 확인
         setLocation(userCoords);
         fetchAddress(userCoords.lat, userCoords.lng);
         fetchJobs(userCoords, zoomLevel);
@@ -42,6 +45,7 @@ export default function HomeScreen() {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const userCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+            console.log("✅ 위치 가져옴: ", userCoords);  // ✅ GPS 좌표 가져왔는지 확인
             setLocation(userCoords);
             fetchAddress(userCoords.lat, userCoords.lng);
             fetchJobs(userCoords, zoomLevel);
@@ -79,6 +83,7 @@ export default function HomeScreen() {
 
   // ✅ 작업 목록 가져오기 (API 호출)
   const fetchJobs = async (coords: { lat: number; lng: number }, zoom: number) => {
+    console.log("🚀 fetchJobs 실행됨! 위치:", coords, "줌 레벨:", zoom); // ✅ 실행 여부 확인
     const params = {
       lat: coords.lat,
       lng: coords.lng,
@@ -100,6 +105,7 @@ export default function HomeScreen() {
         Authorization: `Bearer ${accessToken}`, // ✅ 인증 추가
       });
   
+      console.log("✅ API 응답 데이터:", response); // ✅ API 응답 데이터 확인
       setTasks(response?.data?.content || []);
     } catch (error) {
       console.error("❌ 작업 목록 가져오기 실패:", error);
@@ -169,8 +175,8 @@ export default function HomeScreen() {
           {/* 왼쪽: 작업 정보 */}
           <div className="flex-1">
             <p className="font-semibold">{task.title}</p>
-            <p className="text-sm text-gray-500">{task.price ? task.price.toLocaleString() : "가격 미정"}</p>
-            <p className="text-sm text-gray-500">{task.time ? task.time : "시간 정보 없음"}</p>
+            <p className="text-sm text-gray-500">{task.money ? task.money.toLocaleString() : "가격 미정"}</p>
+            <p className="text-sm text-gray-500">{task.content ? task.content : "내용 없음"}</p>
           </div>
 
           {/* 오른쪽: 작업 이미지 */}

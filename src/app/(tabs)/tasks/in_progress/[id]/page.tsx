@@ -289,10 +289,11 @@ export default function TaskInProgressPage() {
   const confirmOrRejectJob = async (isConfirmed: boolean) => {
     try {
       const accessToken = localStorage.getItem("accessToken");
-      await API_Manager.patch("/api/job/confirm-or-reject", {
+      const params = {
         jobId: id,
         isYes: isConfirmed,
-      }, {
+      }
+      await API_Manager.patch("/api/job/confirm-or-reject", params, {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       });
