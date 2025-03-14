@@ -27,7 +27,7 @@ export default function ChatListPage() {
       const token = localStorage.getItem('accessToken');
 
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/my/rooms`,
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}api/chat/my/rooms`,
           {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -52,7 +52,7 @@ export default function ChatListPage() {
         {chatList.map((chat) => (
           <div
             key={chat.roomId}
-            onClick={() => router.push(`/chat/${chat.roomId}`)}
+            onClick={() => router.push(`chat/${chat.roomId}`)}
             className="p-4 bg-gray-200 rounded-lg cursor-pointer"
           >
             <h2 className="font-semibold">{chat.title}</h2>
