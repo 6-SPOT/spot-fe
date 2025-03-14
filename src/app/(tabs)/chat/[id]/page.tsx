@@ -64,6 +64,7 @@ export default function ChatRoomPage() {
       },() => {
       client.subscribe(`api/topic/${chatId}`, (message) => {
         const parsedMessage = JSON.parse(message.body);
+        console.log("🟢 수신된 메시지:", parsedMessage);
         setMessages((prevMessages) => [...prevMessages, parsedMessage]);
       },
       {
