@@ -62,7 +62,7 @@ export default function ChatRoomPage() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
       },() => {
-      client.subscribe(`api/topic/${chatId}`, (message) => {
+      client.subscribe(`/api/topic/${chatId}`, (message) => {
         const parsedMessage = JSON.parse(message.body);
         console.log("🟢 수신된 메시지:", parsedMessage);
         setMessages((prevMessages) => [...prevMessages, parsedMessage]);
