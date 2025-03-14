@@ -139,7 +139,7 @@ export default function ChatRoomPage() {
       // );
   
       if (stompClient && stompClient.connected) {
-        stompClient.unsubscribe(`api/topic/${chatId}`);
+        stompClient.unsubscribe(`/api/topic/${chatId}`);
         stompClient.disconnect();
         console.log("WebSocket disconnected successfully");
       }
