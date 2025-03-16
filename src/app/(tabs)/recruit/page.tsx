@@ -8,6 +8,7 @@ import API_Manager from "@/lib/API_Manager";
 
 export default function RecruitPage() {
   const router = useRouter();
+  const [title, setTitle] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [location, setLocation] = useState<string>("의뢰 위치 선택");
@@ -26,7 +27,7 @@ export default function RecruitPage() {
 
   // ✅ 데이터 `sessionStorage`에 저장 후 이동
   const handleNext = async () => {
-    if (!description || !fee || !selectedCoords || !imageFile) {
+    if (!title || !description || !fee || !selectedCoords || !imageFile) {
       alert("모든 필드를 입력하고 이미지를 업로드하세요.");
       return;
     }
@@ -44,10 +45,10 @@ export default function RecruitPage() {
 
     // ✅ request 값을 Blob으로 변환하여 Content-Type 명시적으로 추가
     const jsonRequest = JSON.stringify({
-      title: "구인 요청",
+      title ,
       content: description,
       money: Number(fee),
-      point: 500,
+      point: 0,
       lat: selectedCoords.lat,
       lng: selectedCoords.lng,
     });
@@ -141,6 +142,18 @@ export default function RecruitPage() {
           }
         }} />
       </label>
+
+      {/* ✅ 제목 입력 */}
+      <div className="w-full max-w-md mt-4">
+        <label className="block font-semibold">📌 제목</label>
+        <input
+          type="text"
+          className="w-full p-2 border rounded-lg mt-2"
+          placeholder="제목을 입력하세요."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
 
       {/* ✅ 의뢰 내용 입력 */}
       <div className="w-full max-w-md mt-4">

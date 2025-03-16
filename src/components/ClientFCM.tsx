@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
+import useFCM from "@/hooks/useFCM";
 
 export default function ClientFCM() {
+  useFCM();
+
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/firebase-messaging-sw.js")

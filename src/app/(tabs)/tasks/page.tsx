@@ -33,11 +33,11 @@ const getStatusProgress = (status: string) => {
     case "REQUEST":
       return "0%" // 요청중
     case "YES":
-      return "25%" // 수락됨
+      return "30%" // 수락됨
     case "START":
       return "50%" // 진행중
     case "FINISH":
-      return "100%" // 승인대기
+      return "92%" // 승인대기
     default:
       return "0%"
   }

@@ -73,9 +73,9 @@ export default function ApplicantsPage() {
         }
       );
 
-      if (response) {
-        alert("신청자를 선택했습니다.");
-      }
+      alert("신청자를 선택했습니다.");
+      router.push(`/tasks`);
+
     } catch (error) {
       console.error("신청자 선택 오류:", error);
     }
