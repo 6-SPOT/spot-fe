@@ -52,7 +52,7 @@ export default function ChatRoomPage() {
     // 이미 연결 되어있으면 연결 안함
     if (stompClient && stompClient.connected) return;
 
-    const sockJs = new SockJS(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`);
+    const sockJs = new SockJS(`${process.env.NEXT_PUBLIC_API_URL}api/connect`);
     const client = Stomp.over(sockJs);
     // const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
@@ -83,7 +83,7 @@ export default function ChatRoomPage() {
   const fetchChatHistory = async () => {
     const token = localStorage.getItem('accessToken');
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/history/${chatId}`,
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}api/chat/history/${chatId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

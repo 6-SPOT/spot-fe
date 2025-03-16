@@ -26,7 +26,7 @@ export default function TaskInProgressPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [stompClient, setStompClient] = useState<Stomp.Client | null>(null);
 
-  const [isJobStarted, setIsJobStarted] = useState(false);
+  const [myStatus, setMyStatus] = useState<string>("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -34,9 +34,11 @@ export default function TaskInProgressPage() {
   const [taskLocation, setTaskLocation] = useState<{lat: number; lng: number;}>({ lat: 37.5665, lng: 126.9780 });
   // 🔹 해결사 초기 위치 (강남역)
   const [solverLocation, setSolverLocation] = useState<{lat: number; lng: number;}>({ lat: 37.4979, lng: 127.0276 });
+  const [watchId, setWatchId] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
   const isOwner = searchParams.get("owner") === "true"; // URL에서 owner 값을 가져옴
+  const [clientId, setClientId] = useState<number | null>(null);
 
   /** 📌 작업 상세 정보 가져오기 */
   const fetchJobDetails = async () => {
@@ -55,11 +57,27 @@ export default function TaskInProgressPage() {
         console.log("📌 작업 좌표 불러오기 성공:", response.data);
         setTaskLocation({ lat: response.data.lat, lng: response.data.lng });
         initMap(response.data.lat, response.data.lng);
+        setMyStatus(response.data.myStatus);
+        setClientId(response.data.clientId);
       }
     } catch (error) {
       console.error("❌ 작업 좌표 불러오기 실패:", error);
     }
   };
+
+  useEffect(() => {
+    if (clientId) {
+      console.log("✅ clientId 업데이트 감지됨:", clientId);
+      fetchJobCertificates(clientId); // ✅ clientId 업데이트 후 API 호출
+    }
+  }, [clientId]);
+
+  /** 🔍 watchId 변경 감지 후 GPS 추적 중지 */
+useEffect(() => {
+  if (watchId !== null) {
+    console.log("👀 watchId가 설정됨:", watchId);
+  }
+}, [watchId]);
 
   useEffect(() => {
     fetchJobDetails();
@@ -93,6 +111,7 @@ export default function TaskInProgressPage() {
 
     return () => {
       disconnectStompWebSocket();
+      stopTrackingSolverLocation(); // ✅ GPS 추적 중지
     };
   }, []);
 
@@ -110,7 +129,6 @@ export default function TaskInProgressPage() {
       return;
     }
 
-    // ✅ 기존 지도 인스턴스 제거 후 새로 생성
     if (window.mapInstance) {
       console.log("🔄 기존 지도 삭제 후 재초기화");
       window.mapInstance.destroy();
@@ -230,20 +248,28 @@ export default function TaskInProgressPage() {
     }
   };
 
+  let globalWatchId: number | null = null; // ✅ watchId를 전역 변수로 관리
+
   /** 📡 해결사의 GPS 추적 시작 */
   const startTrackingSolverLocation = () => {
     if (!navigator.geolocation) {
       console.error("❌ Geolocation API를 지원하지 않는 브라우저입니다.");
       return;
     }
-
-    navigator.geolocation.watchPosition(
+  
+    // ✅ 기존 위치 추적이 있으면 중지 후 새로 시작
+    if (globalWatchId !== null) {
+      console.log("🔄 기존 GPS 추적 중지 후 새로 시작, watchId:", globalWatchId);
+      navigator.geolocation.clearWatch(globalWatchId);
+    }
+  
+    const id = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         console.log("📍 해결사 현재 위치:", latitude, longitude);
-
+  
         setSolverLocation({ lat: latitude, lng: longitude });
-
+  
         if (stompClient && stompClient.connected) {
           stompClient.send(
             `/api/topic/job/${id}/location`,
@@ -256,7 +282,23 @@ export default function TaskInProgressPage() {
       },
       { enableHighAccuracy: true, maximumAge: 0 }
     );
-  }
+  
+    console.log("✅ GPS 추적 시작됨, watchId:", id);
+    globalWatchId = id; // ✅ 전역 변수에 watchId 저장
+  };
+  
+  /** ❌ 해결사 GPS 추적 중지 */
+  const stopTrackingSolverLocation = () => {
+    console.log("🛑 stopTrackingSolverLocation 호출됨, globalWatchId:", globalWatchId);
+  
+    if (globalWatchId !== null) {
+      navigator.geolocation.clearWatch(globalWatchId);
+      console.log("🔴 해결사 GPS 추적 중지 완료, watchId:", globalWatchId);
+      globalWatchId = null;
+    } else {
+      console.warn("⚠️ stopTrackingSolverLocation: GPS 추적 ID가 없음! 추가 조치 필요");
+    }
+  };
 
   // 작업 시작 API 호출
   const startJob = async () => {
@@ -279,9 +321,29 @@ export default function TaskInProgressPage() {
       );
   
       console.log("✅ 작업 시작 성공:", response);
-      setIsJobStarted(true);
+      setMyStatus(myStatus);
     } catch (error) {
       console.error("❌ 작업 시작 실패:", error);
+    }
+  };
+
+  /** ✅ 작업 완료 API 호출 */
+  const finishJob = async () => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      await API_Manager.patch(
+        "/api/job/worker/finish",
+        { jobId: id },
+        {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        }
+      );
+      setMyStatus(myStatus);
+      alert("작업이 완료되었습니다!");
+      router.push("/tasks"); // 작업 완료 후 이동
+    } catch (error) {
+      console.error("❌ 작업 완료 실패:", error);
     }
   };
 
@@ -349,7 +411,30 @@ const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
   }
 };
 
-  
+/** 📌 작업 증명 사진 불러오기 */
+const fetchJobCertificates = async (workerId: number) => {
+  try {
+    const accessToken = localStorage.getItem("accessToken");
+    const params = {
+      jobId: id,
+      workerId: clientId,
+    };
+    const response = await API_Manager.get(
+      `/api/job/worker/certificate`, params,
+      {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      }
+    );
+
+    if (response.data && Array.isArray(response.data)) {
+      console.log("📸 작업 증명 사진 불러오기 성공:", response.data);
+      setUploadedImages(response.data.map((item: { img: string }) => item.img)); // 이미지 리스트 업데이트
+    }
+  } catch (error) {
+    console.error("❌ 작업 증명 사진 불러오기 실패:", error);
+  }
+};
 
 return (
   <div className="flex flex-col p-4">
@@ -370,16 +455,32 @@ return (
     {/* ✅ 해결사 UI */}
     {!isOwner ? (
       <>
-        {/* ✅ 작업 시작 버튼 */}
-        <button
-          onClick={startJob}
-          disabled={isJobStarted}
-          className={`mt-4 px-4 py-2 rounded-lg text-white ${
-            isJobStarted ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
-          }`}
-        >
-          {isJobStarted ? "작업 시작됨" : "작업 시작"}
-        </button>
+        {myStatus === "YES" && (
+            <button
+              onClick={startJob}
+              className="mt-4 px-4 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600"
+            >
+              작업 시작
+            </button>
+          )}
+
+          {myStatus === "START" && (
+            <button
+            onClick={finishJob}
+              className="mt-4 px-4 py-2 rounded-lg text-white bg-gray-400"
+            >
+              작업 완료
+            </button>
+          )}
+
+          {myStatus === "FINISH" && (
+            <button
+              disabled
+              className="mt-4 px-4 py-2 rounded-lg text-white bg-green-500"
+            >
+              승인 대기
+            </button>
+          )}
 
         {/* ✅ 작업 증명 제출 버튼 */}
         <button

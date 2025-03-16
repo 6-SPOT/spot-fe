@@ -13,5 +13,6 @@ export interface JobDetailData {
     nickname: string;
     clientImg: string;
     myStatus?: string;
+    owner: boolean;
   }
   

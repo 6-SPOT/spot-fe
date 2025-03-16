@@ -7,6 +7,8 @@ import API_Manager from "../../../lib/API_Manager";
 import { Geolocation } from "@capacitor/geolocation";
 import { Capacitor } from "@capacitor/core";
 import MapComponent from "@/components/MapComponent";
+import { JobDetailData } from "@/types"; // API 응답 타입 정의
+
 
 // API 응답 타입 정의
 interface JobData {
@@ -15,6 +17,7 @@ interface JobData {
   money: number;
   time: string;
   content: string;
+  picture: string;
 }
 
 export default function HomeScreen() {
@@ -25,6 +28,8 @@ export default function HomeScreen() {
   const [address, setAddress] = useState("위치 확인 중...");
   const [zoomLevel, setZoomLevel] = useState(17);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [jobDetail, setJobDetail] = useState<JobDetailData | null>(null);
+
 
   useEffect(() => {
     console.log("✅ useEffect 실행됨 - getCurrentLocation 호출");
@@ -114,6 +119,34 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+
+  // ✅ 작업 상세 API 호출하여 owner 여부 확인
+  const checkOwnerAndNavigate = async (taskId: number) => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.error("❌ AccessToken이 없습니다. 로그인 필요.");
+        return;
+      }
+
+      // API 요청
+      const response = await API_Manager.get(`/api/job/worker/get`, { id: taskId }, {
+        Authorization: `Bearer ${accessToken}`,
+      });
+
+      console.log("✅ 작업 상세 데이터:", response);
+      
+      // ✅ owner 값 확인 후 이동 처리
+      if (response?.data?.owner) {
+        router.push(`/tasks/request/${taskId}`); // 본인이 등록한 작업이면 Request 페이지로 이동
+      } else {
+        router.push(`/detail/${taskId}`); // 일반 상세 페이지로 이동
+      }
+    } catch (error) {
+      console.error("❌ 작업 상세 가져오기 실패:", error);
+      router.push(`/detail/${taskId}`); // 오류 시 기본 상세 페이지로 이동
+    }
+  };
   
   // ✅ 줌 레벨이 변경될 때 상태 업데이트
   const handleZoomChange = (zoom: number) => {
@@ -170,7 +203,7 @@ export default function HomeScreen() {
         <div
           key={task.id}
           className="flex justify-between items-center p-4 border-b cursor-pointer"
-          onClick={() => router.push(`/detail/${task.id}`)}
+          onClick={() => checkOwnerAndNavigate(task.id)}
         >
           {/* 왼쪽: 작업 정보 */}
           <div className="flex-1">
@@ -182,7 +215,7 @@ export default function HomeScreen() {
           {/* 오른쪽: 작업 이미지 */}
           <div className="w-24 h-24 bg-gray-300 flex items-center justify-center">
             <Image 
-              src={require("@/assets/image/chillguy.png")} 
+              src={task.picture} 
               alt="작업 이미지" 
               width={96} 
               height={96} 
