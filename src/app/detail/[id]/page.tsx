@@ -156,8 +156,14 @@ export default function DetailPage() {
         }
       );
 
+    
       console.log("📢 채팅방 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
   
+      const roomId = response.data; 
+
+      window.location.href = `/chat/${roomId}`;
+      // ✅ 서버 응답을 그대로 처리
+      alert(`✅ ${response.message}`);
     } catch (error) {
       console.error("❌ 채팅 신청 중 오류 발생:", error);
       alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");

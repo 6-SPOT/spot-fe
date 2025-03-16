@@ -52,7 +52,7 @@ export default function ChatListPage() {
         {chatList.map((chat) => (
           <div
             key={chat.roomId}
-            onClick={() => router.push(`/chat/${chat.roomId}`)}
+            onClick={() => router.push(`chat/${chat.roomId}`)}
             className="p-4 bg-gray-200 rounded-lg cursor-pointer"
           >
             <h2 className="font-semibold">{chat.title}</h2>
