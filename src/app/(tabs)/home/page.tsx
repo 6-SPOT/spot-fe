@@ -94,7 +94,7 @@ export default function HomeScreen() {
       lng: coords.lng,
       zoom,
       page: 0,
-      size: 10,
+      size: 100,
       sort: "string",
     };
   

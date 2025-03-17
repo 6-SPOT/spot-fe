@@ -31,7 +31,7 @@ export default function ApplicantsPage() {
         const params = {
           id,
           page: 0,
-          size: 10,
+          size: 100,
           sort: "string",
         };
 

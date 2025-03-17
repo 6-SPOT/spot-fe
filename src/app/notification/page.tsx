@@ -24,7 +24,7 @@ export default function NotificationScreen() {
 
     const params = {
       page: 0,
-      size: 10,
+      size: 100,
       sort: "string", // 최신순 정렬
     };
 
