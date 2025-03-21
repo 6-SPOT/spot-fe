@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import APIManager from "@/lib/API_Manager"; // API Manager 경로에 맞게 수정 필요
+import APIManager from "@/lib/API_Manager";
 import { ABILITIES } from "@/app/(tabs)/mypage/abilities";
+import { useInView } from "react-intersection-observer"; // 🔥 무한 스크롤 감지
 
 interface Applicant {
   id: number;
@@ -19,38 +20,57 @@ export default function ApplicantsPage() {
 
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [page, setPage] = useState(0); // ✅ 페이지 상태 추가
+  const [hasMore, setHasMore] = useState(true); // ✅ 추가 데이터 여부 확인
+
+  const { ref, inView } = useInView(); // 🔥 Intersection Observer 사용
 
   useEffect(() => {
-    const fetchApplicants = async () => {
-      try {
-        const accessToken = localStorage.getItem("accessToken"); // accessToken 가져오기
-        if (!accessToken) {
-          console.error("AccessToken이 없습니다.");
-          return;
-        }
-        const params = {
-          id,
-          page: 0,
-          size: 100,
-          sort: "string",
-        };
-
-        const response = await APIManager.get("/api/job/search-list", params, {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json"
-        });
-
-        console.log("신청자 리스트 : ", response.data);
-        setApplicants(response.data.content || []);
-      } catch (error) {
-        console.error("신청자 목록을 불러오는 중 오류 발생:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplicants();
+    fetchApplicants(0, true); // ✅ 첫 페이지 데이터 불러오기
   }, [id]);
+
+  useEffect(() => {
+    if (inView && hasMore) {
+      fetchApplicants(page, false); // ✅ 스크롤 시 추가 데이터 로드
+    }
+  }, [inView, hasMore]);
+
+  // ✅ 신청자 목록 가져오기 (무한 스크롤 적용)
+  const fetchApplicants = async (newPage: number, isFirstLoad: boolean) => {
+    try {
+      const accessToken = localStorage.getItem("accessToken");
+      if (!accessToken) {
+        console.error("AccessToken이 없습니다.");
+        return;
+      }
+      const params = {
+        id,
+        page: newPage,
+        size: 10, // ✅ 한 번에 10명씩 불러오기
+        sort: "string",
+      };
+
+      const response = await APIManager.get("/api/job/search-list", params, {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      });
+
+      const newApplicants = response.data.content || [];
+
+      console.log("✅ 추가 데이터 불러옴:", newApplicants.length);
+
+      if (newApplicants.length > 0) {
+        setApplicants((prev) => (isFirstLoad ? newApplicants : [...prev, ...newApplicants]));
+        setPage(newPage + 1); // ✅ 페이지 증가
+      } else {
+        setHasMore(false); // ✅ 더 이상 불러올 데이터가 없을 때 false 설정
+      }
+    } catch (error) {
+      console.error("❌ 신청자 목록을 불러오는 중 오류 발생:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const selectApplicant = async (applicantId: number) => {
     try {
@@ -65,19 +85,15 @@ export default function ApplicantsPage() {
         isYes: true,
       };
 
-      const response = await APIManager.post(
-        "/api/job/yes-or-no",params,
-        {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json"
-        }
-      );
+      await APIManager.post("/api/job/yes-or-no", params, {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      });
 
       alert("신청자를 선택했습니다.");
       router.push(`/tasks`);
-
     } catch (error) {
-      console.error("신청자 선택 오류:", error);
+      console.error("❌ 신청자 선택 오류:", error);
     }
   };
 
@@ -87,15 +103,13 @@ export default function ApplicantsPage() {
       .join(", ");
   };
 
-  if (loading) {
-    return <p className="text-center mt-4">신청자 목록을 불러오는 중...</p>;
-  }
-
   return (
     <div className="flex flex-col p-4">
       <h1 className="text-xl font-bold">신청자 목록</h1>
 
-      {applicants.length === 0 ? (
+      {loading && <p className="text-center mt-4">신청자 목록을 불러오는 중...</p>}
+
+      {!loading && applicants.length === 0 ? (
         <p className="text-center mt-4">신청자가 없습니다.</p>
       ) : (
         <div className="w-full mt-4 space-y-4">
@@ -117,6 +131,9 @@ export default function ApplicantsPage() {
               </div>
             </div>
           ))}
+
+          {/* ✅ 무한 스크롤 트리거 요소 */}
+          {hasMore && <div ref={ref} className="h-10 flex justify-center items-center text-gray-500">불러오는 중...</div>}
         </div>
       )}
 
