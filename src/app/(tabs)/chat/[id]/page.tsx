@@ -7,8 +7,10 @@ import SockJS from "sockjs-client";
 import * as Stomp from "webstomp-client";
 
 interface ChatMessage {
-  sender: string;
+  senderNickname: string;
   content: string;
+  senderId: number;
+
 }
 
 
@@ -18,6 +20,8 @@ export default function ChatRoomPage() {
   const chatId = id as string; // id를 string으로 강제 변환
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentMemberId, setCurrentMemberId] = useState<number | null>(null);
+
   const [input, setInput] = useState("");
   const [stompClient, setStompClient] = useState<any>(null);
 
@@ -49,7 +53,7 @@ export default function ChatRoomPage() {
     // 이미 연결 되어있으면 연결 안함
     if (stompClient && stompClient.connected) return;
 
-    const sockJs = new SockJS(`${process.env.NEXT_PUBLIC_API_URL}/api/connect`);
+    const sockJs = new SockJS(`${process.env.NEXT_PUBLIC_API_URL}api/connect`);
     const client = Stomp.over(sockJs);
     // const token = typeof window !== "undefined" ? localStorage.getItem("token") : "";
 
@@ -61,6 +65,7 @@ export default function ChatRoomPage() {
       },() => {
       client.subscribe(`/api/topic/${chatId}`, (message) => {
         const parsedMessage = JSON.parse(message.body);
+        console.log("🟢 수신된 메시지:", parsedMessage);
         setMessages((prevMessages) => [...prevMessages, parsedMessage]);
       },
       {
@@ -80,7 +85,8 @@ export default function ChatRoomPage() {
   const fetchChatHistory = async () => {
     const token = localStorage.getItem('accessToken');
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/chat/history/${chatId}`,
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}api/chat/history/${chatId}`,
+
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -88,7 +94,8 @@ export default function ChatRoomPage() {
           }
         }
       );
-      setMessages(response.data.data);
+      setMessages(response.data.data.messages);
+      setCurrentMemberId(response.data.data.currentMemberId);
     } catch (error) {
       
       console.error("채팅 내역을 불러오는데 실패했습니다:", error);
@@ -134,7 +141,7 @@ export default function ChatRoomPage() {
       // );
   
       if (stompClient && stompClient.connected) {
-        stompClient.unsubscribe(`/api/topic/${chatId}`);
+        stompClient.unsubscribe(`api/topic/${chatId}`);
         stompClient.disconnect();
         console.log("WebSocket disconnected successfully");
       }
@@ -149,9 +156,9 @@ export default function ChatRoomPage() {
 
       <div className="flex-1 overflow-y-auto mt-4 space-y-4">
         {messages.map((chat, index) => (
-          <div key={index} className={`flex ${chat.sender === "구직자" ? "justify-end" : "justify-start"}`}>
+          <div key={index} className={`flex ${chat.senderId === currentMemberId ? "justify-end" : "justify-start"}`}>
             <div className="p-3 bg-gray-200 rounded-lg max-w-xs">
-              <p className="text-sm font-semibold">{chat.sender}</p>
+              <p className="text-sm font-semibold">{chat.senderNickname}</p>
               <p>{chat.content}</p>
             </div>
           </div>

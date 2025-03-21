@@ -78,38 +78,18 @@ export default function MyPage() {
         { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }
       );
   
-      console.log("📢 해결사 등록 응답:", response);
+      console.log("📢 해결사 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
   
-      // ✅ 응답이 없는 경우 204로 간주
-      const statusCode = response?.status ?? 204;
-  
-      if (statusCode === 204 || statusCode === 200) {
-        alert("✅ 해결사 등록이 완료되었습니다!");
-        setIsModalOpen(false);
-        return;
-      }
-  
-      // ❌ 실패 응답 처리
-      console.error("❌ 등록 실패 응답:", response);
-      alert(`⚠️ 신청에 실패했습니다. (코드: ${statusCode})`);
-    } catch (error: any) {
+      // ✅ 서버 응답을 그대로 처리
+      alert(`✅ ${response.message}`);
+      setIsModalOpen(false);
+    } catch (error) {
       console.error("❌ 해결사 등록 중 오류 발생:", error);
-  
-      // ✅ `error.response`가 없는 경우 기본적으로 204 처리
-      const statusCode = error.response?.status ?? 204;
-  
-      if (statusCode === 204) {
-        alert("✅ 해결사 등록이 완료되었습니다!");
-        setIsModalOpen(false);
-        return;
-      }
-  
-      alert(`🚨 오류가 발생했습니다. 다시 시도해주세요. (코드: ${statusCode})`);
+      alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
   };
-  
 
   return (
     <div className="flex flex-col p-4">

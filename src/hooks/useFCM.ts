@@ -3,6 +3,7 @@ import { messaging, getToken, onMessage } from "@/firebaseConfig";
 
 const useFCM = () => {
   const [notifications, setNotifications] = useState<{ title: string; body: string }[]>([]);
+  const VAPIDKEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
   useEffect(() => {
     console.log("🔹 useFCM.ts 실행됨");
@@ -15,7 +16,7 @@ const useFCM = () => {
 
         if (permission === "granted" && messaging) {
           getToken(messaging, {
-            vapidKey: "BKCEmN3NLjbC9RCaK3E9m3kbDtFhz1RVgz8U7Al9AuGti9LHTeNDQbfHCd0wzsWdvBio_Rxms-xiwgPbVi3YKZQ",
+            vapidKey: VAPIDKEY,
           })
             .then((currentToken) => {
               if (currentToken) {

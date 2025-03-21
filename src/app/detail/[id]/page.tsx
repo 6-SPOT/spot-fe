@@ -15,6 +15,7 @@ export default function DetailPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState("주소를 불러오는 중...");
+  const [isApplied, setIsApplied] = useState(false);
 
   useEffect(() => {
     if (params?.id) {
@@ -48,6 +49,9 @@ export default function DetailPage() {
       );
       setJobDetail(response.data);
 
+      if(response.data.myStatus === "ATTENDER"){
+        setIsApplied(true);
+      }
       // ✅ 받아온 lat, lng으로 주소 변환 요청
       if (response.data.lat && response.data.lng) {
         fetchAddress(response.data.lat, response.data.lng);
@@ -114,14 +118,56 @@ export default function DetailPage() {
         }
       );
 
-      if (response.status === 200) {
-        alert("✅ 신청이 완료되었습니다!");
-      } else {
-        alert("⚠️ 신청에 실패했습니다.");
-      }
+      console.log("📢 해결사 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
+  
+      // ✅ 서버 응답을 그대로 처리
+      alert(`✅ 신청 완료`);
     } catch (error) {
-      console.error("❌ 신청 실패:", error);
-      alert("🚨 오류가 발생했습니다. 다시 시도해주세요.");
+      console.error("❌ 의뢰 신청 중 오류 발생:", error);
+      alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ 채팅 API 호출
+  const createChat = async () => {
+    if (!jobId) {
+      alert("❌ 작업 ID가 없습니다.");
+      return;
+    }
+
+    const accessToken = localStorage.getItem("accessToken");
+    if (!accessToken) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    try {
+      const response = await API_Manager.post(
+        "api/chat/room/create",
+        { jobId: jobId ,
+          otherMemberId: jobDetail?.clientId
+        },
+        {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        }
+      );
+
+    
+      console.log("📢 채팅방 등록 응답:", response.data); // ✅ `response.data` 그대로 사용
+  
+      const roomId = response.data; 
+
+      window.location.href = `/chat/${roomId}`;
+      // ✅ 서버 응답을 그대로 처리
+      //alert(`✅ ${response.message}`);
+    } catch (error) {
+      console.error("❌ 채팅 신청 중 오류 발생:", error);
+      alert("🚨 요청 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -186,12 +232,17 @@ export default function DetailPage() {
       {/* ✅ 하단 버튼들 */}
       <div className="w-full flex justify-between mt-4 space-x-2">
         <button className="flex-1 p-2 bg-gray-300 rounded-md">담아두기</button>
-        <button className="flex-1 p-2 bg-gray-300 rounded-md">1:1 대화</button>
+        <button 
+          className="flex-1 p-2 bg-gray-300 rounded-md"
+          onClick={createChat}
+        >
+          1:1 대화</button>
         <button 
           className="flex-1 p-2 bg-blue-500 text-white rounded-md"
           onClick={handleApply}
+          disabled={isApplied}
         >
-          신청하기
+          {isApplied ? "신청중" : "신청하기"}
         </button>
       </div>
 
