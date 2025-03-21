@@ -69,7 +69,7 @@ export default function SelectHelperPage() {
         {
           content: data.description,
           amount: Number(data.fee),
-          point: 0,
+          point: Number(data.payPoint),
           jobId: Number(jobId)
         },
         {

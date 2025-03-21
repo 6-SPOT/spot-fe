@@ -29,12 +29,50 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
 
     console.log("🟢 지도 생성 요청");
 
-    if (mapInstanceRef.current) {
-      console.log("⚠️ 기존 지도 인스턴스가 존재하여 새로 생성하지 않음");
+    // ✅ 기존 Tmap이 로드된 상태라면 새로 추가하지 않고 그대로 사용
+    if (window.Tmapv2 && typeof window.Tmapv2.LatLng === "function") {
+      console.log("✅ Tmap이 이미 로드됨, 기존 인스턴스 유지");
+      if (!mapInstanceRef.current) initializeMap(); // 지도 인스턴스가 없으면 새로 생성
+      return;
+    }
+
+    // ✅ Tmap 스크립트가 이미 추가되었는지 확인
+    if (!document.getElementById("tmap-script")) {
+      console.log("📢 Tmap 스크립트 추가 로드");
+      const script = document.createElement("script");
+      script.id = "tmap-script";
+      script.src = `https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${TMAP_API_KEY}`;
+      script.async = true;
+      script.onload = () => {
+        console.log("✅ Tmap API 로드 완료");
+        initializeMap();
+      };
+      script.onerror = () => {
+        console.error("❌ Tmap API 로드 실패");
+        document.head.removeChild(script);
+      };
+      document.head.appendChild(script);
+    }
+  }, [mode]); // mode 변경 시마다 실행
+
+
+  const initializeMap = () => {
+    if (!mapRef.current) {
+      console.error("🚨 mapRef가 존재하지 않음, 지도 초기화 중단");
+      return;
+    }
+
+    if (!window.Tmapv2 || typeof window.Tmapv2.LatLng !== "function") {
+      console.error("🚨 Tmap 라이브러리가 완전히 로드되지 않음. 초기화 중단");
       return;
     }
 
     console.log("🗺 지도 초기화 진행");
+
+    if (mapInstanceRef.current) {
+      console.log("⚠️ 기존 지도 인스턴스가 존재하여 새로 생성하지 않음");
+      return;
+    }
 
     const newMapInstance = new window.Tmapv2.Map(mapRef.current, {
       center: new window.Tmapv2.LatLng(centerCoords.lat, centerCoords.lng),
@@ -46,7 +84,6 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
 
     mapInstanceRef.current = newMapInstance;
 
-    // ✅ Detail 페이지 (geocoding)에서 마커 추가
     if (mode === "geocoding") {
         console.log("📍 Detail 페이지 - 마커 추가");
         if (!markerRef.current) {
@@ -57,9 +94,8 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
         } else {
           markerRef.current.setMap(newMapInstance);
         }
-      }
+    }
 
-    // 📍 Recruit 페이지(reverse-geocoding)에서는 지도 이동 시 중심 좌표 업데이트만 수행
     if (mode === "reverse-geocoding") {
       window.Tmapv2.event.addListener(newMapInstance, "dragend", () => {
         const newCenter = newMapInstance.getCenter();
@@ -68,7 +104,6 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
       });
     }
 
-    // ✅ 줌 변경 이벤트 추가
     window.Tmapv2.event.addListener(newMapInstance, "zoom_changed", () => {
       const newZoomLevel = newMapInstance.getZoom();
       console.log("🔍 줌 레벨 변경:", newZoomLevel);
@@ -78,7 +113,9 @@ export default function MapComponent({ mode, address, onConfirm, onZoomChange }:
     });
 
     console.log("✅ 지도 로드 완료");
-  }, [mode]);
+};
+
+
 
   // ✅ "확인" 버튼을 눌렀을 때 Reverse Geocoding 실행
   const handleConfirmClick = async () => {
