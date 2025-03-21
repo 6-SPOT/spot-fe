@@ -43,7 +43,7 @@ export default function RecruitPage() {
 
     fetchUserPoints();
   }, []);
-
+    
   // ✅ 위치 선택 핸들러
   const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }) => {
     setLocation(address);
@@ -180,7 +180,6 @@ export default function RecruitPage() {
           }
         }} />
       </label>
-
       {/* ✅ 제목 입력 */}
       <div className="w-full max-w-md mt-4">
         <label className="block font-semibold">📌 제목</label>

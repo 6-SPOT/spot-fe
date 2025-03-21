@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import API_Manager from "../../../lib/API_Manager";
@@ -9,7 +10,6 @@ import { Capacitor } from "@capacitor/core";
 import MapComponent from "@/components/MapComponent";
 import { JobDetailData } from "@/types"; // API 응답 타입 정의
 import { useInView } from "react-intersection-observer";
-
 
 // API 응답 타입 정의
 interface JobData {
@@ -173,6 +173,24 @@ export default function HomeScreen() {
       setLoading(false);
     }
   };
+
+  // ✅ 작업 목록 가져오기 (API 호출)
+  const fetchJobs = async (coords: { lat: number; lng: number }, zoom: number) => {
+    const params = {
+      lat: coords.lat,
+      lng: coords.lng,
+      zoom,
+      page: 0,
+      size: 10,
+      sort: "string",
+    };
+  
+    const accessToken = localStorage.getItem("accessToken"); // ✅ 토큰 가져오기
+  
+    if (!accessToken) {
+      console.error("❌ AccessToken이 없습니다. 로그인 필요.");
+      return;
+    }
   
 
   // ✅ 작업 상세 API 호출하여 owner 여부 확인
@@ -208,6 +226,7 @@ export default function HomeScreen() {
     console.log("🔍 줌 레벨 변경됨:", zoom);
     setZoomLevel(zoom);
   };
+  
 
   // ✅ "확인" 버튼을 눌렀을 때 최신 줌 레벨 반영
   const handleConfirmLocation = (address: string, coords: { lat: number; lng: number }, zoom: number) => {

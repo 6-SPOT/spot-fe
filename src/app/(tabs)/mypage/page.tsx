@@ -90,8 +90,6 @@ export default function MyPage() {
       setLoading(false);
     }
   };
-  
-  
 
   return (
     <div className="flex flex-col p-4">

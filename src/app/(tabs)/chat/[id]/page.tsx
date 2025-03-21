@@ -10,6 +10,7 @@ interface ChatMessage {
   senderNickname: string;
   content: string;
   senderId: number;
+
 }
 
 
@@ -85,6 +86,7 @@ export default function ChatRoomPage() {
     const token = localStorage.getItem('accessToken');
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}api/chat/history/${chatId}`,
+
         {
           headers: {
             'Authorization': `Bearer ${token}`,

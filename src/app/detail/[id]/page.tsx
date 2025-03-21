@@ -52,7 +52,6 @@ export default function DetailPage() {
       if(response.data.myStatus === "ATTENDER"){
         setIsApplied(true);
       }
-
       // ✅ 받아온 lat, lng으로 주소 변환 요청
       if (response.data.lat && response.data.lng) {
         fetchAddress(response.data.lat, response.data.lng);

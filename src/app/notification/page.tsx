@@ -84,7 +84,6 @@ export default function NotificationScreen() {
       setLoading(false);
     }
   };
-  
 
   return (
     <div className="flex flex-col p-4">
