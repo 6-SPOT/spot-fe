@@ -96,7 +96,7 @@ export default function HomeScreen() {
     const script = document.createElement("script");
     script.id = "tmap-script";
     script.src = `https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${process.env.NEXT_PUBLIC_TMAP_API_KEY}`;
-    script.async = true;
+    script.defer = true; // ✅ defer 추가로 렌더링 차단 방지
     script.onload = () => {
       console.log("✅ Tmap API 로드 완료");
       setIsTmapLoaded(true);
@@ -131,12 +131,13 @@ export default function HomeScreen() {
   // ✅ 작업 목록 가져오기 (API 호출)
   const fetchJobs = async (newPage: number, coords: { lat: number; lng: number }, zoom: number, isFirstLoad: boolean) => {
     console.log("🚀 fetchJobs 실행됨! 위치:", coords, "줌 레벨:", zoom);
+    const size = newPage === 0 ? 10 : 20;
     const params = {
       lat: coords.lat,
       lng: coords.lng,
       zoom,
       page: newPage,
-      size: 20,
+      size,
       sort: "string",
     };
   
@@ -276,11 +277,22 @@ export default function HomeScreen() {
       {/* 작업 목록 */}
       {/* ✅ 작업 목록 */}
       {loading ? (
-        <p>불러오는 중...</p>
+        <div className="w-full mt-4">
+          <div className="flex justify-between items-center p-4 border-b">
+            {/* 왼쪽: 더미 텍스트 */}
+            <div className="flex-1">
+              <p className="font-semibold bg-gray-200 w-1/2 h-4 mb-2 animate-pulse rounded"></p>
+              <p className="text-sm bg-gray-100 w-1/3 h-3 mb-1 animate-pulse rounded"></p>
+              <p className="text-sm bg-gray-100 w-2/3 h-3 animate-pulse rounded"></p>
+            </div>
+            {/* 오른쪽: 기본 이미지 */}
+            <div className="w-24 h-24 bg-gray-100 flex items-center justify-center animate-pulse rounded"></div>
+          </div>
+        </div>
       ) : (
         tasks.length > 0 ? (
           <div className="w-full mt-4">
-            {tasks.map((task) => (
+            {tasks.map((task, index) => (
               <div
                 key={task.id}
                 className="flex justify-between items-center p-4 border-b cursor-pointer"
@@ -294,14 +306,17 @@ export default function HomeScreen() {
                 </div>
 
                 {/* 오른쪽: 작업 이미지 */}
-                <div className="w-24 h-24 bg-gray-300 flex items-center justify-center">
-                  <Image 
-                    src={task.picture} 
-                    alt="작업 이미지" 
-                    width={96} 
-                    height={96} 
-                  />
-                </div>
+                <div className="w-24 h-24 bg-gray-300 flex items-center justify-center overflow-hidden">
+                <Image
+                  src={task.picture || "/spot-logo-optimized.webp"}
+                  alt="작업 이미지"
+                  width={96}
+                  height={96}
+                  style={{ width: "96px", height: "96px", objectFit: "cover" }}
+                  priority={index === 0}
+                />
+              </div>
+
               </div>
             ))}
             {hasMore && <div ref={ref} className="h-10 flex justify-center items-center text-gray-500">불러오는 중...</div>}
@@ -311,6 +326,5 @@ export default function HomeScreen() {
         )
       )}
     </div>
-);
-
+  );
 }
