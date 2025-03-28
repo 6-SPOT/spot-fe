@@ -175,25 +175,6 @@ export default function HomeScreen() {
     }
   };
 
-  // ✅ 작업 목록 가져오기 (API 호출)
-  const fetchJobs = async (coords: { lat: number; lng: number }, zoom: number) => {
-    const params = {
-      lat: coords.lat,
-      lng: coords.lng,
-      zoom,
-      page: 0,
-      size: 10,
-      sort: "string",
-    };
-  
-    const accessToken = localStorage.getItem("accessToken"); // ✅ 토큰 가져오기
-  
-    if (!accessToken) {
-      console.error("❌ AccessToken이 없습니다. 로그인 필요.");
-      return;
-    }
-  
-
   // ✅ 작업 상세 API 호출하여 owner 여부 확인
   const checkOwnerAndNavigate = async (taskId: number) => {
     try {
