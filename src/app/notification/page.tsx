@@ -32,7 +32,7 @@ export default function NotificationScreen() {
     if (inView && hasMore) {
       fetchNotifications(page, false); // ✅ 스크롤 시 추가 데이터 로드
     }
-  }, [inView, hasMore]);
+  }, [inView, hasMore, page]);
 
   // ✅ 알림 목록 API 호출 함수 (무한 스크롤 적용)
   const fetchNotifications = async (newPage: number, isFirstLoad: boolean) => {
@@ -58,8 +58,8 @@ export default function NotificationScreen() {
   
       console.log("✅ 추가 데이터 불러옴:", response?.data);
   
-      if (response?.data?.status === "success" && response?.data?.data) {
-        const newNotifications: Notification[] = response.data.data.content || [];
+      if (response?.status === "success" && response?.data) {
+        const newNotifications: Notification[] = response.data.content || [];
   
         if (newNotifications.length > 0) {
           // 🔥 기존 데이터와 새 데이터를 합쳐 중복 제거
@@ -87,34 +87,57 @@ export default function NotificationScreen() {
   
 
   return (
-    <div className="flex flex-col p-4">
-      <h1 className="text-xl font-bold">알림 페이지</h1>
-
-      {loading && <p className="text-gray-500">로딩 중...</p>}
-
-      {!loading && notifications.length === 0 ? (
-        <p className="text-gray-500">알림이 없습니다.</p>
-      ) : (
-        <div className="w-full mt-4 space-y-4">
-          {notifications.map((notif) => (
-            <div key={notif.id} className="p-4 border-b">
-              <h2 className="font-semibold">{notif.sender_name || "알림"}</h2>
-              <p>{notif.content}</p>
-              <span className="text-sm text-gray-400">{notif.created_at}</span>
+    <div className="flex flex-col min-h-screen">
+      {/* 헤더 */}
+      <div className="p-4">
+        <h1 className="text-xl font-bold">알림 페이지</h1>
+      </div>
+  
+      {/* 알림 리스트 */}
+      <div className="flex-1 px-4 overflow-y-auto space-y-4">
+        {loading ? (
+          [...Array(5)].map((_, idx) => (
+            <div key={idx} className="p-4 border-b min-h-[80px] animate-pulse space-y-2">
+              <div className="h-4 w-1/3 bg-gray-300 rounded" />
+              <div className="h-4 w-5/6 bg-gray-200 rounded" />
+              <div className="h-3 w-1/4 bg-gray-200 rounded" />
             </div>
-          ))}
-
-          {/* ✅ 무한 스크롤 트리거 요소 */}
-          {hasMore && <div ref={ref} className="h-10 flex justify-center items-center text-gray-500">불러오는 중...</div>}
-        </div>
-      )}
-
-      <button
-        onClick={() => router.back()}
-        className="mt-4 p-2 bg-gray-300 rounded-lg"
-      >
-        뒤로 가기
-      </button>
+          ))
+        ) : notifications.length === 0 ? (
+          <p className="text-gray-500">알림이 없습니다.</p>
+        ) : (
+          <>
+            {notifications.map((notif) => (
+              <div key={notif.id} className="p-4 border-b min-h-[80px]">
+                <h2 className="font-semibold">{notif.sender_name || "알림"}</h2>
+                <p className="line-clamp-2">{notif.content}</p>
+                <span className="text-sm text-gray-400">{notif.created_at}</span>
+              </div>
+            ))}
+  
+            {/* 무한 스크롤 트리거 */}
+            {hasMore && (
+              <div
+                ref={ref}
+                className="min-h-[40px] h-10 flex justify-center items-center text-gray-500"
+              >
+                불러오는 중...
+              </div>
+            )}
+          </>
+        )}
+      </div>
+  
+      {/* ✅ 하단 고정 버튼 */}
+      <div className="sticky bottom-0 bg-white p-4 border-t">
+        <button
+          onClick={() => router.back()}
+          className="w-full p-3 bg-gray-300 rounded-lg min-h-[44px]"
+        >
+          뒤로 가기
+        </button>
+      </div>
     </div>
   );
+  
 }

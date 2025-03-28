@@ -30,11 +30,11 @@ export default function RecruitPage() {
       }
 
       try {
-        const response = await API_Manager.get("/api/user/points", {
+        const response = await API_Manager.get("/api/member/points", {}, {
           Authorization: `Bearer ${token}`,
         });
 
-        setUserPoints(response.data.points);
+        setUserPoints(response.data.point);
       } catch (error) {
         console.error("❌ 포인트 조회 실패:", error);
         alert("포인트 정보를 가져오는 데 실패했습니다.");
