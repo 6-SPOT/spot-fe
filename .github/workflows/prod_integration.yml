@@ -53,4 +53,4 @@ jobs:
         env:
           CODEPIPELINE_NAME: spot-prod-fe-pipe
         run: |
-          aws codepipeline start-pipeline-execution --name CODEPIPELINE_NAME
+          aws codepipeline start-pipeline-execution --name $CODEPIPELINE_NAME
