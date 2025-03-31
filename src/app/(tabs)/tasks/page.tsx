@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image';
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
 import { API_Manager } from "../../../lib/API_Manager" // API Manager 임포트
@@ -113,7 +114,7 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col items-center p-4 max-w-md mx-auto">
       <h1 className="text-2xl font-bold mb-6">작업 현황</h1>
-
+  
       {/* 상단 탭 네비게이션 (스크롤 고정) */}
       <div className="w-full sticky top-0 bg-white z-10">
         <div className="flex w-full border-b">
@@ -135,46 +136,54 @@ export default function TasksPage() {
           </button>
         </div>
       </div>
-
+  
       {/* 데이터 로딩 상태 */}
-      {loading && <p className="text-gray-500 text-center mt-4">데이터 불러오는 중...</p>}
+      {loading && (
+        <div className="w-full space-y-4 mt-4 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-6 bg-gray-100 rounded-lg h-32" />
+          ))}
+        </div>
+      )}
       {error && <p className="text-red-500 text-center mt-4">{error}</p>}
-
+  
       {/* 작업 리스트 */}
       <div className="w-full space-y-4 mt-4">
         {!loading && !error && tasks.length > 0 ? (
-          tasks.map((task) => (
+          tasks.map((task, index) => (
             <div
               key={task.jobId}
               onClick={() => router.push(getTaskRoute(task.status, activeTab === "requests", task.jobId, task.owner))}
               className="p-6 bg-gray-100 rounded-lg cursor-pointer"
             >
               <div className="flex items-start gap-4">
-                {/* 이미지 */}
-                <img src={task.img || "/placeholder.png"} alt="작업 이미지" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
-                
+                {/* 이미지 - 첫 번째 이미지만 priority */}
+                <div className="w-24 h-24 relative flex-shrink-0">
+                  <Image
+                    src={task.img || "/spot-logo-optimized.webp"}
+                    alt="작업 이미지"
+                    width={96}
+                    height={96}
+                    className="rounded-lg object-cover"
+                    priority={index === 0} // 첫 번째 항목만 priority
+                  />
+                </div>
+  
                 <div className="flex-1">
                   <h2 className="text-lg font-medium mb-1">{task.title}</h2>
                   <p className="text-sm text-gray-600 mb-1">{task.content}</p>
                 </div>
               </div>
-
+  
               {/* 진행 상태 바 */}
               <div className="mt-6">
                 <p className="text-sm font-medium mb-3">처리 현황: {getStatusLabel(task.status)}</p>
                 <div className="relative px-4">
-                  {/* 배경 선 */}
                   <div className="absolute left-4 right-4 h-1 bg-gray-300" />
-
-                  {/* 진행 선 */}
                   <div
                     className="absolute left-4 h-1 bg-black transition-all duration-300"
-                    style={{
-                      width: getStatusProgress(task.status),
-                    }}
+                    style={{ width: getStatusProgress(task.status) }}
                   />
-
-                  {/* 상태 텍스트 */}
                   <div className="flex justify-between w-full pt-4">
                     {["요청중", "수락", "진행중", "승인대기"].map((label) => (
                       <span
