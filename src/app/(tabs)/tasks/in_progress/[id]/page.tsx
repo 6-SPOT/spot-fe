@@ -24,7 +24,8 @@ export default function TaskInProgressPage() {
 
   const mapRef = useRef<HTMLDivElement>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [stompClient, setStompClient] = useState<Stomp.Client | null>(null);
+  const stompClientRef = useRef<Stomp.Client | null>(null);
+
 
   const [myStatus, setMyStatus] = useState<string>("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -107,7 +108,6 @@ useEffect(() => {
     }
 
     connectStompWebSocket();
-    startTrackingSolverLocation();
 
     return () => {
       disconnectStompWebSocket();
@@ -153,11 +153,12 @@ useEffect(() => {
       });
 
       // 🔹 해결사 위치 마커 추가
-      const solverMarkerInstance = new window.Tmapv2.Marker({
-        position: new window.Tmapv2.LatLng(0, 0),
-        map: window.mapInstance,
-        title: "해결사 위치",
-      });
+const solverMarkerInstance = new window.Tmapv2.Marker({
+  position: new window.Tmapv2.LatLng(solverLocation.lat, solverLocation.lng),
+  map: window.mapInstance,
+  title: "해결사 위치",
+});
+
 
       window.solverMarker = solverMarkerInstance;
     }
@@ -165,7 +166,8 @@ useEffect(() => {
 
   /** 🔌 WebSocket 연결 */
   const connectStompWebSocket = () => {
-    if (stompClient && stompClient.connected) {
+    // ✅ 수정: stompClientRef.current로 체크
+    if (stompClientRef.current && stompClientRef.current.connected) {
       console.log("⚠️ 이미 STOMP WebSocket이 연결됨");
       return;
     }
@@ -178,11 +180,9 @@ useEffect(() => {
       return;
     }
   
-    // ✅ SockJS WebSocket 생성
     const sockJs = new SockJS(WS_SERVER_URL);
     const client = Stomp.over(sockJs);
   
-    // ✅ ConnectionHeaders 타입 지정
     const headers: Stomp.ConnectionHeaders = {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -192,29 +192,34 @@ useEffect(() => {
       headers,
       () => {
         console.log("✅ WebSocket 연결 성공");
-        setStompClient(client);
-        setIsConnected(true);
   
-        // ✅ 구독 설정
+        stompClientRef.current = client; // ✅ 즉시 할당
+  
         const topic = `/api/topic/job/${id}`;
         client.subscribe(
           topic,
           (message: Stomp.Message) => {
             const data = JSON.parse(message.body);
             console.log("🔄 WebSocket 수신 데이터:", data);
-            
+  
             if (data.lat && data.lng) {
               console.log("📍 해결사 실시간 위치 업데이트:", data.lat, data.lng);
               updateSolverLocation(data.lat, data.lng);
             }
-
+  
             if (data.url) {
               console.log("📸 새 작업 증명 사진 추가됨:", data.url);
-              setUploadedImages((prevImages) => [...prevImages, data.url]); // 새로운 이미지 추가
+              setUploadedImages((prevImages) => [...prevImages, data.url]);
             }
           },
-          headers // ✅ 헤더 포함
+          headers
         );
+  
+        setIsConnected(true);
+  
+        // ✅ 구독 완료 후 추적 시작
+        startTrackingSolverLocation();
+        console.log("🚀 위치 추적 시작됨 (구독 완료 이후)");
       },
       (error: Stomp.Frame | CloseEvent) => {
         console.error("❌ WebSocket 연결 실패:", error);
@@ -222,15 +227,17 @@ useEffect(() => {
     );
   };
   
+  
 
   /** ❌ WebSocket 연결 해제 */
   const disconnectStompWebSocket = () => {
     console.log("🔴 WebSocket 연결 해제");
-
+  
     try {
-      if (stompClient && stompClient.connected) {
-        stompClient.unsubscribe(`/api/topic/job/${id}`);
-        stompClient.disconnect();
+      const client = stompClientRef.current;
+      if (client && client.connected) {
+        client.unsubscribe(`/api/topic/job/${id}`);
+        client.disconnect();
         console.log("✅ WebSocket 정상적으로 종료됨");
         setIsConnected(false);
       }
@@ -238,15 +245,32 @@ useEffect(() => {
       console.error("❌ WebSocket 종료 중 오류 발생:", error);
     }
   };
+  
 
   /** 📍 해결사 위치 실시간 업데이트 */
   const updateSolverLocation = (lat: number, lng: number) => {
-    setSolverLocation({ lat, lng });
-
+    console.log("📍 [업데이트] 해결사 마커 이동:", lat, lng);
+  
     if (window.solverMarker) {
-      window.solverMarker.setPosition(new window.Tmapv2.LatLng(lat, lng));
+      const newPos = new window.Tmapv2.LatLng(lat, lng);
+      window.solverMarker.setPosition(newPos);
+    } else {
+      console.warn("❌ [업데이트 실패] solverMarker가 아직 존재하지 않음");
     }
+  
+    setSolverLocation({ lat, lng }); // UI state도 동기화
+    if (!window.solverMarker) {
+      window.solverMarker = new window.Tmapv2.Marker({
+        position: new window.Tmapv2.LatLng(lat, lng),
+        map: window.mapInstance,
+        title: "해결사 위치",
+      });
+      console.log("🆕 마커가 없어서 새로 생성함");
+      return;
+    }
+    
   };
+  
 
   let globalWatchId: number | null = null; // ✅ watchId를 전역 변수로 관리
 
@@ -257,25 +281,31 @@ useEffect(() => {
       return;
     }
   
-    // ✅ 기존 위치 추적이 있으면 중지 후 새로 시작
     if (globalWatchId !== null) {
       console.log("🔄 기존 GPS 추적 중지 후 새로 시작, watchId:", globalWatchId);
       navigator.geolocation.clearWatch(globalWatchId);
     }
   
-    const id = navigator.geolocation.watchPosition(
+    const newWatchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         console.log("📍 해결사 현재 위치:", latitude, longitude);
   
-        setSolverLocation({ lat: latitude, lng: longitude });
+        setSolverLocation({ lat: latitude, lng: longitude }); // ✅ 이게 이제 작동됨!
   
-        if (stompClient && stompClient.connected) {
-          stompClient.send(
+        if (stompClientRef.current && stompClientRef.current.connected) {
+          stompClientRef.current.send(
             `/api/topic/job/${id}/location`,
             JSON.stringify({ lat: latitude, lng: longitude })
           );
+          console.log("📡 WebSocket 위치 전송됨:", latitude, longitude);
+          if (!isOwner) {
+            updateSolverLocation(latitude, longitude);
+          }
+        } else {
+          console.warn("⚠️ stompClient 아직 연결되지 않아 전송 생략됨");
         }
+        
       },
       (error) => {
         console.error("❌ GPS 추적 실패:", error);
@@ -283,9 +313,10 @@ useEffect(() => {
       { enableHighAccuracy: true, maximumAge: 0 }
     );
   
-    console.log("✅ GPS 추적 시작됨, watchId:", id);
-    globalWatchId = id; // ✅ 전역 변수에 watchId 저장
+    console.log("✅ GPS 추적 시작됨, watchId:", newWatchId);
+    globalWatchId = newWatchId;
   };
+  
   
   /** ❌ 해결사 GPS 추적 중지 */
   const stopTrackingSolverLocation = () => {
@@ -441,7 +472,7 @@ return (
     <h1 className="text-xl font-bold">이거 해주세요</h1>
 
     {/* ✅ WebSocket 상태 표시 */}
-    <div className="mt-2 text-sm">
+    <div className="mt-2 text-sm min-h-[20px]">
       {isConnected ? (
         <p className="text-green-500">✅ WebSocket 연결됨</p>
       ) : (
@@ -450,15 +481,20 @@ return (
     </div>
 
     {/* ✅ 지도 표시 */}
-    <div ref={mapRef} id="tmap" className="w-full mt-4 rounded-lg" style={{ height: "400px" }}></div>
+    <div
+      ref={mapRef}
+      id="tmap"
+      className="w-full mt-4 rounded-lg h-[400px] min-h-[400px]"
+    ></div>
 
     {/* ✅ 해결사 UI */}
-    {!isOwner ? (
-      <>
-        {myStatus === "YES" && (
+    <div className="min-h-[180px] mt-4">
+      {!isOwner ? (
+        <>
+          {myStatus === "YES" && (
             <button
               onClick={startJob}
-              className="mt-4 px-4 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600"
+              className="mt-2 px-4 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600 w-full"
             >
               작업 시작
             </button>
@@ -466,8 +502,8 @@ return (
 
           {myStatus === "START" && (
             <button
-            onClick={finishJob}
-              className="mt-4 px-4 py-2 rounded-lg text-white bg-gray-400"
+              onClick={finishJob}
+              className="mt-2 px-4 py-2 rounded-lg text-white bg-gray-400 w-full"
             >
               작업 완료
             </button>
@@ -476,56 +512,70 @@ return (
           {myStatus === "FINISH" && (
             <button
               disabled
-              className="mt-4 px-4 py-2 rounded-lg text-white bg-green-500"
+              className="mt-2 px-4 py-2 rounded-lg text-white bg-green-500 w-full"
             >
               승인 대기
             </button>
           )}
 
-        {/* ✅ 작업 증명 제출 버튼 */}
-        <button
-          onClick={handleUploadButtonClick}
-          className="mt-2 px-4 py-2 rounded-lg text-white bg-green-500 hover:bg-green-600"
-        >
-          작업 증명 제출
-        </button>
+          {/* ✅ 작업 증명 제출 버튼 */}
+          <button
+            onClick={handleUploadButtonClick}
+            className="mt-2 px-4 py-2 rounded-lg text-white bg-green-500 hover:bg-green-600 w-full"
+          >
+            작업 증명 제출
+          </button>
 
-        {/* ✅ 실제 파일 선택 Input (숨김 처리) */}
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
-      </>
-    ) : (
-      <>
-        {/* ✅ 작업 완료 승인/반려 버튼 (의뢰자만 사용) */}
-        <div className="mt-4 flex gap-4">
-          <button onClick={() => confirmOrRejectJob(true)} className="px-4 py-2 rounded-lg text-white bg-green-500">
+          {/* ✅ 실제 파일 선택 Input (숨김 처리) */}
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+        </>
+      ) : (
+        <div className="flex gap-4">
+          <button
+            onClick={() => confirmOrRejectJob(true)}
+            className="mt-2 px-4 py-2 rounded-lg text-white bg-green-500 w-full"
+          >
             작업 승인
           </button>
-          <button onClick={() => confirmOrRejectJob(false)} className="px-4 py-2 rounded-lg text-white bg-red-500">
+          <button
+            onClick={() => confirmOrRejectJob(false)}
+            className="mt-2 px-4 py-2 rounded-lg text-white bg-red-500 w-full"
+          >
             작업 반려
           </button>
         </div>
-      </>
-    )}
+      )}
+    </div>
 
-    {/* ✅ 작업 증명 사진 목록 (해결사/의뢰자 공통) */}
-    {uploadedImages.length > 0 ? (
-      <div className="mt-4">
-        <h2 className="text-lg font-bold">제출된 작업 증명 사진</h2>
-        <div className="grid grid-cols-2 gap-4 mt-2">
-          {uploadedImages.map((url, index) => (
-            <img key={index} src={url} alt="작업 증명" className="w-full rounded-lg" />
-          ))}
-        </div>
-      </div>
-    ) : (
-      <p className="text-gray-500 mt-4">아직 제출된 작업 증명 사진이 없습니다.</p>
-    )}
+    {/* ✅ 작업 증명 사진 목록 */}
+    <div className="mt-4 min-h-[220px]">
+      {uploadedImages.length > 0 ? (
+        <>
+          <h2 className="text-lg font-bold">제출된 작업 증명 사진</h2>
+          <div className="grid grid-cols-2 gap-4 mt-2">
+            {uploadedImages.map((url, index) => (
+              <img
+                key={index}
+                src={url}
+                alt="작업 증명"
+                width={200}
+                height={200}
+                className="w-full h-[200px] object-cover rounded-lg"
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-gray-500">아직 제출된 작업 증명 사진이 없습니다.</p>
+      )}
+    </div>
   </div>
 );
+
 }
