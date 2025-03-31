@@ -10,6 +10,7 @@ import { Capacitor } from "@capacitor/core";
 import MapComponent from "@/components/MapComponent";
 import { JobDetailData } from "@/types"; // API 응답 타입 정의
 import { useInView } from "react-intersection-observer";
+import { Bell } from "lucide-react";
 
 // API 응답 타입 정의
 interface JobData {
@@ -234,7 +235,9 @@ export default function HomeScreen() {
         <h1 className="text-2xl font-bold cursor-pointer" onClick={() => setIsModalOpen(true)}>
           {address}
         </h1>
-        <button onClick={() => router.push("/notification")} className="p-2">🔔</button>
+        <button onClick={() => router.push("/notification")} className="p-2">
+    <Bell className="w-6 h-6 text-black" />
+  </button>
       </div>
 
       {/* ✅ 지도 모달 */}
