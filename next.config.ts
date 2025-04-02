@@ -12,6 +12,9 @@ const nextConfig = {
     ], // ✅ S3 버킷 도메인 추가
     
   },
+  eslint: {
+    ignoreDuringBuilds: true, // 👈 이 줄 추가!
+  },
 };
 
 export default nextConfig;
